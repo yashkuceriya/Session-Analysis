@@ -15,10 +15,10 @@ function ScoreBar({ label, score, color = 'blue' }: { label: string; score: numb
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-mono">{score}</span>
+        <span className="text-[var(--muted)]">{label}</span>
+        <span className="text-[var(--foreground)] font-mono">{score}</span>
       </div>
-      <div className="h-2 bg-gray-800 rounded-full">
+      <div className="h-2 bg-[var(--card-hover)] rounded-full">
         <div
           className={`h-2 ${colors[color] || colors.blue} rounded-full transition-all duration-700`}
           style={{ width: `${score}%` }}
@@ -30,8 +30,8 @@ function ScoreBar({ label, score, color = 'blue' }: { label: string; score: numb
 
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+    <div className="card p-5">
+      <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3 flex items-center gap-2">
         <span>{icon}</span> {title}
       </h3>
       {children}
@@ -43,8 +43,8 @@ function TextBlock({ label, text }: { label?: string; text: string }) {
   if (!text) return null;
   return (
     <div className="mb-3">
-      {label && <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{label}</p>}
-      <p className="text-sm text-gray-300 leading-relaxed">{text}</p>
+      {label && <p className="text-[10px] text-[var(--muted-light)] uppercase tracking-wider mb-1">{label}</p>}
+      <p className="text-sm text-[var(--foreground)]/80 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -58,7 +58,7 @@ function BulletList({ items, color = 'blue' }: { items: string[]; color?: string
   return (
     <ul className="space-y-1.5">
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
+        <li key={i} className="flex items-start gap-2 text-sm text-[var(--muted)]">
           <span className={`w-1.5 h-1.5 rounded-full ${dotColors[color] || dotColors.blue} mt-1.5 flex-shrink-0`} />
           {item}
         </li>
@@ -92,16 +92,16 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
   // Not yet analyzed
   if (!analysis) {
     return (
-      <div className="bg-gradient-to-br from-blue-950/50 to-purple-950/50 border border-blue-900/30 rounded-xl p-6 mt-6">
+      <div className="bg-[var(--accent-light)] border border-[var(--accent)]/20 rounded-xl p-6 mt-6">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-[var(--foreground)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-white font-semibold">AI Deep Analysis</h3>
-            <p className="text-xs text-gray-400">Powered by Claude — get personalized coaching feedback</p>
+            <h3 className="text-[var(--foreground)] font-semibold">AI Deep Analysis</h3>
+            <p className="text-xs text-[var(--muted)]">Powered by Claude — get personalized coaching feedback</p>
           </div>
         </div>
         {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
@@ -110,8 +110,8 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
           disabled={loading}
           className={`w-full py-3 rounded-lg text-sm font-medium transition-all ${
             loading
-              ? 'bg-gray-700 text-gray-400 cursor-wait'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+              ? 'bg-[var(--card-border)] text-[var(--muted)] cursor-wait'
+              : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--foreground)] shadow-lg shadow-blue-600/20'
           }`}
         >
           {loading ? 'Analyzing session with AI...' : 'Generate Deep Session Report'}
@@ -129,23 +129,23 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
   return (
     <div className="mt-6 space-y-4">
       {/* Header with grade */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="card p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">AI Session Report</p>
-            <h2 className="text-xl font-bold text-white">Deep Analysis</h2>
+            <p className="text-xs text-[var(--muted-light)] uppercase tracking-wider mb-1">AI Session Report</p>
+            <h2 className="text-xl font-bold text-[var(--foreground)]">Deep Analysis</h2>
           </div>
           <div className="flex items-center gap-3">
             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradeColor[analysis.sessionGrade] || gradeColor.C} flex items-center justify-center shadow-lg`}>
-              <span className="text-2xl font-black text-white">{analysis.sessionGrade}</span>
+              <span className="text-2xl font-black text-[var(--foreground)]">{analysis.sessionGrade}</span>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-white">{analysis.overallScore}</p>
-              <p className="text-[10px] text-gray-500">/ 100</p>
+              <p className="text-2xl font-bold text-[var(--foreground)]">{analysis.overallScore}</p>
+              <p className="text-[10px] text-[var(--muted-light)]">/ 100</p>
             </div>
           </div>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed">{analysis.summary}</p>
+        <p className="text-sm text-[var(--foreground)]/80 leading-relaxed">{analysis.summary}</p>
       </div>
 
       {/* Score breakdown */}
@@ -222,21 +222,21 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
       {/* Session highlights */}
       <Section title="Session Highlights" icon="✨">
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="bg-[var(--accent-subtle)] rounded-lg p-3">
             <p className="text-[10px] text-green-400 uppercase mb-1">Best Moment</p>
-            <p className="text-xs text-gray-300">{analysis.sessionHighlights.bestMoment}</p>
+            <p className="text-xs text-[var(--foreground)]/80">{analysis.sessionHighlights.bestMoment}</p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="bg-[var(--accent-subtle)] rounded-lg p-3">
             <p className="text-[10px] text-red-400 uppercase mb-1">Biggest Challenge</p>
-            <p className="text-xs text-gray-300">{analysis.sessionHighlights.biggestChallenge}</p>
+            <p className="text-xs text-[var(--foreground)]/80">{analysis.sessionHighlights.biggestChallenge}</p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="bg-[var(--accent-subtle)] rounded-lg p-3">
             <p className="text-[10px] text-blue-400 uppercase mb-1">Most Improved</p>
-            <p className="text-xs text-gray-300">{analysis.sessionHighlights.mostImprovedArea}</p>
+            <p className="text-xs text-[var(--foreground)]/80">{analysis.sessionHighlights.mostImprovedArea}</p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="bg-[var(--accent-subtle)] rounded-lg p-3">
             <p className="text-[10px] text-purple-400 uppercase mb-1">Key Takeaway</p>
-            <p className="text-xs text-gray-300">{analysis.sessionHighlights.keyTakeaway}</p>
+            <p className="text-xs text-[var(--foreground)]/80">{analysis.sessionHighlights.keyTakeaway}</p>
           </div>
         </div>
       </Section>
@@ -265,7 +265,7 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
 
       {/* Detailed narrative */}
       <Section title="Detailed Coaching Feedback" icon="📝">
-        <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+        <div className="text-sm text-[var(--foreground)]/80 leading-relaxed whitespace-pre-line">
           {analysis.detailedNarrative}
         </div>
       </Section>
@@ -274,7 +274,7 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
       <button
         onClick={runAnalysis}
         disabled={loading}
-        className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs rounded-lg transition-colors"
+        className="w-full py-2 bg-[var(--card-hover)] hover:bg-[var(--card-border)] text-[var(--muted)] text-xs rounded-lg transition-colors"
       >
         {loading ? 'Re-analyzing...' : 'Re-analyze Session'}
       </button>

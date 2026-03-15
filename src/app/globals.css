@@ -1,48 +1,110 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  /* Warm light theme — inspired by reference designs */
+  --background: #faf9f7;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-border: #e8e5e0;
+  --card-hover: #f5f3f0;
+  --muted: #8c8579;
+  --muted-light: #b5afa6;
+  --accent: #e85d26;
+  --accent-hover: #d14e1c;
+  --accent-light: #fff0eb;
+  --accent-subtle: #fef3ee;
+  --success: #2d9f5c;
+  --success-light: #edf9f0;
+  --warning: #e5a100;
+  --warning-light: #fef9eb;
+  --danger: #dc3545;
+  --danger-light: #fdf0f1;
+  --info: #3b82f6;
+  --info-light: #eff6ff;
+  --sidebar-bg: #1e1e2d;
+  --sidebar-text: #c4c0d0;
+  --sidebar-active: #e85d26;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
+  /* Custom colors available in Tailwind */
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Utility classes for the warm theme */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+
+.card-hover:hover {
+  background: var(--card-hover);
+}
+
+.accent-btn {
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.accent-btn:hover {
+  background: var(--accent-hover);
+}
+
+.score-ring {
+  filter: drop-shadow(0 0 8px rgba(232, 93, 38, 0.3));
+}
+
+/* Video session page stays dark (video looks better on dark) */
+.session-dark {
+  --background: #0f0f17;
+  --card: #1a1a2d;
+  --card-border: #2a2a3d;
+  --foreground: #f0eff4;
+  --muted: #9994a8;
+  background: #0f0f17;
+  color: #f0eff4;
 }
 
 @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
-
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
 
-/* Accessibility: High Contrast Mode */
-html.high-contrast {
-  --bg-primary: #000000;
-  --text-primary: #ffffff;
-  --border-color: #ffffff;
+@keyframes fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out;
 }
 
+/* Accessibility */
+html.high-contrast {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card-border: #000000;
+}
 html.high-contrast * {
   border-color: currentColor !important;
 }
 
-/* Accessibility: Reduced Motion */
 html.reduced-motion *,
 html.reduced-motion *::before,
 html.reduced-motion *::after {
@@ -51,18 +113,10 @@ html.reduced-motion *::after {
   transition-duration: 0.01ms !important;
 }
 
-/* Accessibility: Font Size */
-html[data-font-size="small"] {
-  font-size: 14px;
-}
-html[data-font-size="medium"] {
-  font-size: 16px;
-}
-html[data-font-size="large"] {
-  font-size: 20px;
-}
+html[data-font-size="small"] { font-size: 14px; }
+html[data-font-size="medium"] { font-size: 16px; }
+html[data-font-size="large"] { font-size: 20px; }
 
-/* Screen reader only helper */
 .sr-only {
   position: absolute;
   width: 1px;

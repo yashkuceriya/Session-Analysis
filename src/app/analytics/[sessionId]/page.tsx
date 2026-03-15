@@ -237,20 +237,20 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400">Loading session data...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-[var(--muted)]">Loading session data...</p>
       </div>
     );
   }
 
   if (!summary) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400 mb-4">No session data available for {sessionIdParam}</p>
+          <p className="text-[var(--muted)] mb-4">No session data available for {sessionIdParam}</p>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-[var(--foreground)] rounded-lg"
           >
             Start New Session
           </button>
@@ -260,16 +260,16 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Session Report</h1>
-            <p className="text-gray-400 text-sm mt-2">
+            <h1 className="text-3xl font-bold text-[var(--foreground)]">Session Report</h1>
+            <p className="text-[var(--muted)] text-sm mt-2">
               {sessionConfig.subject} — {sessionConfig.sessionType} — {summary.durationMinutes} min
             </p>
-            <p className="text-gray-600 text-xs mt-1 font-mono">{sessionIdParam}</p>
+            <p className="text-[var(--muted-light)] text-xs mt-1 font-mono">{sessionIdParam}</p>
 
             {/* Data provenance badge */}
             <div className="flex items-center gap-3 mt-3">
@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
                 dataSource === 'server' ? 'bg-green-900/50 text-green-300' :
                 dataSource === 'memory' ? 'bg-blue-900/50 text-blue-300' :
                 dataSource === 'local' ? 'bg-yellow-900/50 text-yellow-300' :
-                'bg-gray-800 text-gray-400'
+                'bg-[var(--card-hover)] text-[var(--muted)]'
               }`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
                 {dataSource === 'server' ? 'Synced' :
@@ -285,14 +285,14 @@ export default function AnalyticsPage() {
                  dataSource === 'local' ? 'Local only' :
                  'Unknown source'}
               </span>
-              <span className="text-gray-600 text-xs">
+              <span className="text-[var(--muted-light)] text-xs">
                 {metricsHistory.length} data points at ~{metricsHistory.length > 1 ? Math.round((metricsHistory[metricsHistory.length-1].timestamp - metricsHistory[0].timestamp) / metricsHistory.length / 100) / 10 : 0}s intervals
               </span>
             </div>
           </div>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-[var(--foreground)] rounded-lg text-sm font-medium"
           >
             New Session
           </button>
@@ -312,17 +312,17 @@ export default function AnalyticsPage() {
 
         {/* QUICK STATS */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
             Quick Stats
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Engagement */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500 font-medium">Engagement</p>
-                <p className="text-lg font-bold text-white">{summary.avgEngagement}</p>
+                <p className="text-xs text-[var(--muted-light)] font-medium">Engagement</p>
+                <p className="text-lg font-bold text-[var(--foreground)]">{summary.avgEngagement}</p>
               </div>
-              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-2">
+              <div className="h-1 bg-[var(--card-hover)] rounded-full overflow-hidden mb-2">
                 <div
                   className={`h-full ${
                     summary.avgEngagement >= 75 ? 'bg-green-500' :
@@ -333,30 +333,30 @@ export default function AnalyticsPage() {
                   style={{ width: `${Math.min(summary.avgEngagement, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-400">{getEngagementQuality(summary.avgEngagement)}</p>
+              <p className="text-xs text-[var(--muted)]">{getEngagementQuality(summary.avgEngagement)}</p>
             </div>
 
             {/* Duration */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-500 font-medium mb-2">Duration</p>
-              <p className="text-lg font-bold text-white">{summary.durationMinutes}</p>
-              <p className="text-xs text-gray-400">minutes</p>
+            <div className="card p-4">
+              <p className="text-xs text-[var(--muted-light)] font-medium mb-2">Duration</p>
+              <p className="text-lg font-bold text-[var(--foreground)]">{summary.durationMinutes}</p>
+              <p className="text-xs text-[var(--muted)]">minutes</p>
             </div>
 
             {/* Nudges */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-500 font-medium mb-2">Nudges</p>
-              <p className="text-lg font-bold text-white">{summary.nudgesTriggered}</p>
-              <p className="text-xs text-gray-400">coaching tips</p>
+            <div className="card p-4">
+              <p className="text-xs text-[var(--muted-light)] font-medium mb-2">Nudges</p>
+              <p className="text-lg font-bold text-[var(--foreground)]">{summary.nudgesTriggered}</p>
+              <p className="text-xs text-[var(--muted)]">coaching tips</p>
             </div>
 
             {/* Turns */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500 font-medium">Turns</p>
-                <p className="text-lg font-bold text-white">{summary.turnCount ?? 0}</p>
+                <p className="text-xs text-[var(--muted-light)] font-medium">Turns</p>
+                <p className="text-lg font-bold text-[var(--foreground)]">{summary.turnCount ?? 0}</p>
               </div>
-              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-2">
+              <div className="h-1 bg-[var(--card-hover)] rounded-full overflow-hidden mb-2">
                 <div
                   className={`h-full ${
                     (summary.turnCount ?? 0) >= 10 ? 'bg-green-500' :
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
                   style={{ width: `${Math.min(((summary.turnCount ?? 0) / 20) * 100, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-400">{getTurnsQuality(summary.turnCount ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)]">{getTurnsQuality(summary.turnCount ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -374,10 +374,10 @@ export default function AnalyticsPage() {
         {/* ENGAGEMENT OVER TIME */}
         {startTime && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Engagement Over Time
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="card p-5">
               <TimelineChart metricsHistory={metricsHistory} startTime={startTime} />
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
         {/* FACIAL EXPRESSION ANALYSIS */}
         {metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Facial Expression Analysis
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
@@ -399,10 +399,10 @@ export default function AnalyticsPage() {
         {/* EXPRESSION TIMELINE */}
         {startTime && metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Expression Timeline
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="card p-5">
               <ExpressionTimelineChart metricsHistory={metricsHistory} startTime={startTime} />
             </div>
           </div>
@@ -411,7 +411,7 @@ export default function AnalyticsPage() {
         {/* DETAILED EXPRESSION BREAKDOWN */}
         {metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Detailed Expression Breakdown
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
@@ -432,10 +432,10 @@ export default function AnalyticsPage() {
         {/* STUDENT STATE TIMELINE */}
         {startTime && metricsHistory.length > 10 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Student State Timeline
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="card p-5">
               <StudentStateTimeline metricsHistory={metricsHistory} startTime={startTime} />
             </div>
           </div>
@@ -443,7 +443,7 @@ export default function AnalyticsPage() {
 
         {/* COMMUNICATION & INTERACTION */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
             Communication &amp; Interaction
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
@@ -456,30 +456,30 @@ export default function AnalyticsPage() {
             />
 
             {/* Eye Contact */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <h3 className="text-sm font-medium text-gray-300 mb-4">Eye Contact</h3>
+            <div className="card p-5">
+              <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Eye Contact</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-gray-400">{sessionConfig.tutorName}</span>
-                    <span className="text-sm font-bold text-white">{summary.avgTutorEye}%</span>
+                    <span className="text-xs font-medium text-[var(--muted)]">{sessionConfig.tutorName}</span>
+                    <span className="text-sm font-bold text-[var(--foreground)]">{summary.avgTutorEye}%</span>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[var(--card-hover)] rounded-full overflow-hidden">
                     <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${summary.avgTutorEye}%` }} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--muted-light)] mt-1">
                     {summary.avgTutorEye >= 70 ? 'Strong focus' : summary.avgTutorEye >= 50 ? 'Moderate' : 'Low attention'}
                   </p>
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-gray-400">{sessionConfig.studentName}</span>
-                    <span className="text-sm font-bold text-white">{summary.avgStudentEye}%</span>
+                    <span className="text-xs font-medium text-[var(--muted)]">{sessionConfig.studentName}</span>
+                    <span className="text-sm font-bold text-[var(--foreground)]">{summary.avgStudentEye}%</span>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[var(--card-hover)] rounded-full overflow-hidden">
                     <div className="h-2 bg-purple-500 rounded-full" style={{ width: `${summary.avgStudentEye}%` }} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--muted-light)] mt-1">
                     {getEyeContactQuality(summary.avgStudentEye)}
                   </p>
                 </div>
@@ -491,10 +491,10 @@ export default function AnalyticsPage() {
         {/* ENGAGEMENT HEATMAP */}
         {startTime && metricsHistory.length > 10 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Engagement Heatmap
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="card p-5">
               <EngagementHeatmap metricsHistory={metricsHistory} startTime={startTime} />
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function AnalyticsPage() {
         {/* COACHING & NUDGES */}
         {(startTime && nudgeHistory.length > 0) || summary.keyMoments.length > 0 ? (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Coaching &amp; Nudges
             </h2>
 
@@ -520,15 +520,15 @@ export default function AnalyticsPage() {
 
             {/* Nudge history */}
             {nudgeHistory.length > 0 && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-gray-300 mb-4">Nudge History</h3>
+              <div className="card p-5">
+                <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Nudge History</h3>
                 <div className="space-y-3">
                   {nudgeHistory.map((nudge) => (
                     <div key={nudge.id} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
                       <span className="text-lg">{nudge.icon}</span>
                       <div className="flex-1">
-                        <p className="text-gray-300">{nudge.message}</p>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-[var(--foreground)]">{nudge.message}</p>
+                        <p className="text-xs text-[var(--muted-light)] mt-1">
                           at {startTime ? formatMinuteTime(nudge.timestamp - startTime) : ''}
                         </p>
                       </div>
@@ -543,10 +543,10 @@ export default function AnalyticsPage() {
         {/* KEY MOMENTS */}
         {summary.keyMoments.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
               Key Moments
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="card p-5">
               <div className="space-y-3">
                 {summary.keyMoments.map((moment, i) => (
                   <div key={i} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
@@ -554,8 +554,8 @@ export default function AnalyticsPage() {
                       {moment.type === 'drop' ? '📉' : '📈'}
                     </span>
                     <div className="flex-1">
-                      <p className="text-gray-300">{moment.description}</p>
-                      <p className="text-xs text-gray-600 mt-1">at {formatMinuteTime(moment.time)}</p>
+                      <p className="text-[var(--foreground)]">{moment.description}</p>
+                      <p className="text-xs text-[var(--muted-light)] mt-1">at {formatMinuteTime(moment.time)}</p>
                     </div>
                   </div>
                 ))}
@@ -566,13 +566,13 @@ export default function AnalyticsPage() {
 
         {/* RECOMMENDATIONS */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
             Recommendations
           </h2>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="card p-5">
             <ul className="space-y-3">
               {summary.recommendations.map((rec, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
+                <li key={i} className="flex items-start gap-3 text-sm text-[var(--foreground)]">
                   <span className="text-base mt-0.5">💡</span>
                   <span>{rec}</span>
                 </li>
@@ -583,8 +583,8 @@ export default function AnalyticsPage() {
 
         {/* Methodology note */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 mb-6">
-          <p className="text-xs text-gray-500 leading-relaxed">
-            <span className="font-medium text-gray-400">How these metrics work:</span>{' '}
+          <p className="text-xs text-[var(--muted-light)] leading-relaxed">
+            <span className="font-medium text-[var(--muted)]">How these metrics work:</span>{' '}
             Engagement scores are computed from eye contact (gaze estimation via MediaPipe), speaking time balance,
             audio energy, interruption frequency, and attention stability. These are calibrated heuristics, not
             validated psychometric instruments. Student states (confused, drifting, etc.) are inferred from
