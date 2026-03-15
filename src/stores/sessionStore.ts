@@ -8,6 +8,8 @@ import { SessionConfig } from '@/lib/session/types';
 const MAX_METRICS_HISTORY = 1200; // ~10 minutes at 2Hz
 const DOWNSAMPLE_THRESHOLD = 600; // Start downsampling after 5 min
 
+type CallState = 'waiting' | 'connecting' | 'connected' | 'degraded' | 'reconnecting' | 'ended';
+
 interface LatencyBreakdown {
   faceMeshMs: number;
   audioMs: number;
@@ -42,6 +44,7 @@ interface SessionState {
   isAnalysisVisible: boolean;
   isChatOpen: boolean;
   isRecording: boolean;
+  callState: CallState;
 
   // Latency
   processingLatencyMs: number;
@@ -65,6 +68,7 @@ interface SessionState {
   setRecording: (val: boolean) => void;
   setLatency: (ms: number) => void;
   setLatencyBreakdown: (breakdown: LatencyBreakdown) => void;
+  setCallState: (state: CallState) => void;
   getFullHistory: () => MetricSnapshot[];
   reset: () => void;
 }
@@ -94,6 +98,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isAnalysisVisible: true,
   isChatOpen: false,
   isRecording: false,
+  callState: 'waiting',
   processingLatencyMs: 0,
   latencyBreakdown: { faceMeshMs: 0, audioMs: 0, metricsMs: 0, coachingMs: 0, totalMs: 0 },
   latencyHistory: [],
@@ -175,6 +180,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setLatencyBreakdown: (breakdown) =>
     set({ latencyBreakdown: breakdown }),
 
+  setCallState: (state) => set({ callState: state }),
+
   getFullHistory: () => {
     const state = get();
     return [...state.metricsArchive, ...state.metricsHistory];
@@ -190,6 +197,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       metricsArchive: [],
       activeNudges: [],
       nudgeHistory: [],
+      callState: 'waiting',
       processingLatencyMs: 0,
       latencyBreakdown: { faceMeshMs: 0, audioMs: 0, metricsMs: 0, coachingMs: 0, totalMs: 0 },
       latencyHistory: [],

@@ -99,14 +99,49 @@ export default function DashboardPage() {
 
   const isEmpty = sessions.length === 0;
 
+  // Helper function to get engagement label
+  const getEngagementLabel = (score: number): string => {
+    if (score >= 70) return 'Excellent';
+    if (score >= 40) return 'Good';
+    return 'Needs improvement';
+  };
+
+  // Helper function to compute trends
+  const computeTrends = () => {
+    if (sessions.length < 2) return { trend: 'stable', description: '' };
+
+    const recent = sessions.slice(0, 5).map(s => s.engagementScore);
+    const older = sessions.slice(5, 10).map(s => s.engagementScore);
+
+    const recentAvg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+    const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : 0;
+
+    let trend = 'stable';
+    let description = 'Your engagement has remained consistent.';
+
+    if (recentAvg > olderAvg + 5) {
+      trend = 'improving';
+      description = 'Your engagement has been improving over recent sessions, indicating more active and meaningful discussions.';
+    } else if (recentAvg < olderAvg - 5) {
+      trend = 'declining';
+      description = 'Your engagement levels have declined recently. Consider adjusting your approach in sessions.';
+    }
+
+    return { trend, description };
+  };
+
+  const { description: trendDescription } = computeTrends();
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-gray-900 border-b border-gray-800 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold">Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-1">Track and manage your tutoring sessions</p>
+            <h1 className="text-4xl font-bold">Tutor Dashboard</h1>
+            <p className="text-gray-400 text-sm mt-2">
+              You've completed {stats.totalSessions} session{stats.totalSessions !== 1 ? 's' : ''} with an average engagement of {stats.avgEngagement}%
+            </p>
           </div>
           <Link
             href="/session"
@@ -117,7 +152,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center min-h-96 bg-gray-900 border border-gray-800 rounded-lg">
             <div className="text-center">
@@ -135,7 +170,7 @@ export default function DashboardPage() {
                 />
               </svg>
               <h2 className="text-2xl font-semibold text-white mb-2">No sessions yet</h2>
-              <p className="text-gray-400 mb-6">Start your first session to see analytics and insights</p>
+              <p className="text-gray-400 mb-6">No sessions yet. Start your first tutoring session to see analytics here.</p>
               <Link
                 href="/session"
                 className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
@@ -148,10 +183,34 @@ export default function DashboardPage() {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard label="Total Sessions" value={stats.totalSessions.toString()} />
-              <StatCard label="Avg Engagement" value={`${stats.avgEngagement}%`} />
-              <StatCard label="Total Teaching Time" value={stats.totalTeachingTime} />
-              <StatCard label="Active Students" value={stats.activeStudents.toString()} />
+              <StatCard
+                icon="📚"
+                label="Sessions"
+                value={stats.totalSessions}
+                descriptor={`${stats.totalSessions} session${stats.totalSessions !== 1 ? 's' : ''} total`}
+                borderColor="border-t-blue-500"
+              />
+              <StatCard
+                icon="📊"
+                label="Engagement"
+                value={`${stats.avgEngagement}%`}
+                descriptor={getEngagementLabel(stats.avgEngagement)}
+                borderColor="border-t-green-500"
+              />
+              <StatCard
+                icon="⏱️"
+                label="Teaching Time"
+                value={stats.totalTeachingTime}
+                descriptor={`${stats.totalTeachingTime} total`}
+                borderColor="border-t-purple-500"
+              />
+              <StatCard
+                icon="👥"
+                label="Students"
+                value={stats.activeStudents}
+                descriptor={`${stats.activeStudents} unique student${stats.activeStudents !== 1 ? 's' : ''}`}
+                borderColor="border-t-amber-500"
+              />
             </div>
 
             {/* Engagement Trend Chart */}
@@ -163,7 +222,7 @@ export default function DashboardPage() {
             )}
 
             {/* Session History Table */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+            <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden mb-8">
               <div className="px-6 py-4 border-b border-gray-800">
                 <h2 className="text-xl font-semibold text-white">Session History</h2>
               </div>
@@ -194,8 +253,8 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
-                    {sessions.map((session) => (
-                      <SessionRow key={session.id} session={session} />
+                    {sessions.map((session, index) => (
+                      <SessionRow key={session.id} session={session} isFirst={index === 0} />
                     ))}
                   </tbody>
                 </table>
@@ -203,10 +262,18 @@ export default function DashboardPage() {
 
               {/* Mobile Card View */}
               <div className="md:hidden divide-y divide-gray-800">
-                {sessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
+                {sessions.map((session, index) => (
+                  <SessionCard key={session.id} session={session} isFirst={index === 0} />
                 ))}
               </div>
+            </div>
+
+            {/* Overall NL Summary */}
+            <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Overview</h3>
+              <p className="text-gray-300 leading-relaxed">
+                {trendDescription}
+              </p>
             </div>
           </>
         )}
@@ -222,11 +289,29 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  descriptor,
+  borderColor,
+}: {
+  icon: string;
+  label: string;
+  value: string | number;
+  descriptor: string;
+  borderColor: string;
+}) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">{label}</p>
-      <p className="text-3xl font-bold text-blue-400 mt-2">{value}</p>
+    <div className={`bg-gray-900 border border-gray-800 border-t-2 ${borderColor} rounded-lg p-6`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">{label}</p>
+          <p className="text-3xl font-bold text-white mt-2">{value}</p>
+          <p className="text-gray-400 text-xs mt-2">{descriptor}</p>
+        </div>
+        <span className="text-3xl">{icon}</span>
+      </div>
     </div>
   );
 }
@@ -236,7 +321,7 @@ function EngagementChart({ data }: { data: number[] }) {
 
   const width = 600;
   const height = 300;
-  const padding = 40;
+  const padding = 50;
   const chartWidth = width - 2 * padding;
   const chartHeight = height - 2 * padding;
 
@@ -251,17 +336,70 @@ function EngagementChart({ data }: { data: number[] }) {
 
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
 
+  // Create gradient fill path
+  const fillPath = `M ${points[0].x} ${points[0].y} ${polylinePoints} L ${points[points.length - 1].x} ${height - padding} L ${padding} ${height - padding} Z`;
+
   return (
     <div className="flex justify-center overflow-x-auto">
       <svg width={width} height={height} className="min-w-full">
-        {/* Grid lines */}
+        <defs>
+          <linearGradient id="engagementGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Reference lines with labels */}
+        {/* Fair line at 40 */}
+        <g>
+          <line
+            x1={padding}
+            y1={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight}
+            x2={width - padding}
+            y2={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight}
+            stroke="#666666"
+            strokeWidth="1"
+            strokeDasharray="4"
+          />
+          <text
+            x={width - padding + 5}
+            y={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight + 3}
+            fontSize="10"
+            fill="#999999"
+          >
+            Fair
+          </text>
+        </g>
+
+        {/* Good line at 70 */}
+        <g>
+          <line
+            x1={padding}
+            y1={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight}
+            x2={width - padding}
+            y2={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight}
+            stroke="#666666"
+            strokeWidth="1"
+            strokeDasharray="4"
+          />
+          <text
+            x={width - padding + 5}
+            y={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight + 3}
+            fontSize="10"
+            fill="#999999"
+          >
+            Good
+          </text>
+        </g>
+
+        {/* Y-axis grid lines and labels */}
         {[0, 25, 50, 75, 100].map((gridValue) => {
           const y = padding + chartHeight - ((gridValue - minValue) / (maxValue - minValue)) * chartHeight;
           return (
             <g key={`grid-${gridValue}`}>
-              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#374151" strokeWidth="1" strokeDasharray="4" />
+              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#374151" strokeWidth="1" strokeDasharray="4" opacity="0.5" />
               <text x={padding - 10} y={y + 4} fontSize="11" fill="#6B7280" textAnchor="end">
-                {gridValue}%
+                {gridValue}
               </text>
             </g>
           );
@@ -271,14 +409,18 @@ function EngagementChart({ data }: { data: number[] }) {
         <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#4B5563" strokeWidth="2" />
         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#4B5563" strokeWidth="2" />
 
+        {/* Gradient fill under line */}
+        <path d={fillPath} fill="url(#engagementGradient)" />
+
         {/* Polyline */}
         <polyline points={polylinePoints} fill="none" stroke="#3B82F6" strokeWidth="2" />
 
-        {/* Data points */}
+        {/* Data points with hover titles */}
         {points.map((point, index) => (
           <g key={`point-${index}`}>
             <circle cx={point.x} cy={point.y} r="4" fill="#3B82F6" />
             <circle cx={point.x} cy={point.y} r="6" fill="none" stroke="#3B82F6" strokeWidth="1" opacity="0.3" />
+            <title>{`Session ${index + 1}: ${point.value}%`}</title>
           </g>
         ))}
 
@@ -298,7 +440,13 @@ function EngagementChart({ data }: { data: number[] }) {
   );
 }
 
-function SessionRow({ session }: { session: Session }) {
+function SessionRow({
+  session,
+  isFirst,
+}: {
+  session: Session;
+  isFirst: boolean;
+}) {
   const engagementColor =
     session.engagementScore >= 70
       ? 'bg-green-500/20 text-green-400'
@@ -306,11 +454,21 @@ function SessionRow({ session }: { session: Session }) {
         ? 'bg-yellow-500/20 text-yellow-400'
         : 'bg-red-500/20 text-red-400';
 
+  const engagementLabel =
+    session.engagementScore >= 70
+      ? 'Excellent'
+      : session.engagementScore >= 40
+        ? 'Good'
+        : 'Needs improvement';
+
   return (
     <Link href={`/analytics/${session.id}`}>
       <tr className="hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800 last:border-b-0">
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-          {formatDate(session.date)}
+          <div className="flex items-center gap-2">
+            {isFirst && <span className="text-xs bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded">Most recent</span>}
+            {formatDate(session.date)}
+          </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{session.subject}</td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{session.studentName}</td>
@@ -319,7 +477,7 @@ function SessionRow({ session }: { session: Session }) {
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${engagementColor}`}>
-            {session.engagementScore}%
+            {session.engagementScore}% {engagementLabel}
           </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
@@ -332,7 +490,13 @@ function SessionRow({ session }: { session: Session }) {
   );
 }
 
-function SessionCard({ session }: { session: Session }) {
+function SessionCard({
+  session,
+  isFirst,
+}: {
+  session: Session;
+  isFirst: boolean;
+}) {
   const engagementColor =
     session.engagementScore >= 70
       ? 'bg-green-500/20 text-green-400'
@@ -340,12 +504,22 @@ function SessionCard({ session }: { session: Session }) {
         ? 'bg-yellow-500/20 text-yellow-400'
         : 'bg-red-500/20 text-red-400';
 
+  const engagementLabel =
+    session.engagementScore >= 70
+      ? 'Excellent'
+      : session.engagementScore >= 40
+        ? 'Good'
+        : 'Needs improvement';
+
   return (
     <Link href={`/analytics/${session.id}`}>
       <div className="p-4 hover:bg-gray-800 transition-colors cursor-pointer">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <p className="text-sm text-gray-400">{formatDate(session.date)}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm text-gray-400">{formatDate(session.date)}</p>
+              {isFirst && <span className="text-xs bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded">Most recent</span>}
+            </div>
             <p className="font-semibold text-white">{session.subject}</p>
           </div>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${engagementColor}`}>
@@ -362,8 +536,10 @@ function SessionCard({ session }: { session: Session }) {
             <p className="text-gray-200">{formatDuration(session.duration)}</p>
           </div>
           <div>
-            <p className="text-gray-400">Status</p>
-            <p className="text-blue-400">{session.status || 'Completed'}</p>
+            <p className="text-gray-400">Engagement</p>
+            <p className={`text-sm font-medium ${engagementColor.replace(/px/, '').replace(/py/, '')}`}>
+              {engagementLabel}
+            </p>
           </div>
         </div>
       </div>

@@ -35,7 +35,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Accessibility',
     shortcuts: [
       { key: '?', description: 'Show keyboard shortcuts' },
-      { key: 'Alt + A', description: 'Open accessibility settings' },
+      { key: '!', description: 'Toggle accessibility settings' },
     ],
   },
 ];

@@ -1,5 +1,20 @@
 export type StudentState = 'engaged' | 'passive' | 'confused' | 'drifting' | 'struggling';
 
+export interface ExpressionSnapshot {
+  smile: number;        // 0-1
+  confusion: number;    // 0-1
+  concentration: number; // 0-1
+  surprise: number;     // 0-1
+  energy: number;       // 0-1
+  valence: number;      // 0-1
+  browFurrow: number;   // 0-1
+  browRaise: number;    // 0-1
+  headNod: number;      // -1 to 1
+  headShake: number;    // 0-1
+  mouthOpen: number;    // 0-1
+  headTilt: number;     // radians
+}
+
 export interface MetricSnapshot {
   timestamp: number;
   tutor: ParticipantMetrics;
@@ -7,6 +22,8 @@ export interface MetricSnapshot {
   session: SessionMetrics;
   engagementScore: number; // 0-100
   studentState: StudentState;
+  tutorExpression: ExpressionSnapshot | null;
+  studentExpression: ExpressionSnapshot | null;
 }
 
 export interface ParticipantMetrics {

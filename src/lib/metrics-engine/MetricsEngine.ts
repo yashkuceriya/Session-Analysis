@@ -11,6 +11,7 @@ import {
   SessionMetrics,
   MetricConfig,
   StudentState,
+  ExpressionSnapshot,
   SESSION_TYPE_WEIGHTS,
   IDEAL_TALK_RATIOS,
 } from './types';
@@ -172,6 +173,25 @@ export class MetricsEngine {
       studentState,
     };
 
+    // Helper to convert ExpressionResult to ExpressionSnapshot
+    const toExpressionSnapshot = (expr: import('../video-processor/types').ExpressionResult | null): ExpressionSnapshot | null => {
+      if (!expr) return null;
+      return {
+        smile: expr.smile,
+        confusion: expr.confusion,
+        concentration: expr.concentration,
+        surprise: expr.surprise,
+        energy: expr.energy,
+        valence: expr.valence,
+        browFurrow: expr.browFurrow,
+        browRaise: expr.browRaise,
+        headNod: expr.headNod,
+        headShake: expr.headShake,
+        mouthOpen: expr.mouthOpen,
+        headTilt: expr.headTilt,
+      };
+    };
+
     return {
       timestamp,
       tutor,
@@ -179,6 +199,8 @@ export class MetricsEngine {
       session,
       engagementScore: Math.round(engagementSmoothed * 100),
       studentState,
+      tutorExpression: toExpressionSnapshot(tutorExpr),
+      studentExpression: toExpressionSnapshot(studentExpr),
     };
   }
 

@@ -14,6 +14,7 @@ interface VideoLayoutProps {
   viewMode: 'speaker' | 'gallery';
   activeSpeaker: 'tutor' | 'student';
   showOverlays?: boolean;
+  localRole?: 'tutor' | 'student';
 }
 
 export function VideoLayout({
@@ -24,6 +25,7 @@ export function VideoLayout({
   viewMode,
   activeSpeaker,
   showOverlays = true,
+  localRole = 'tutor',
 }: VideoLayoutProps) {
   const currentMetrics = useSessionStore((state) => state.currentMetrics);
 
@@ -53,7 +55,7 @@ export function VideoLayout({
           isSpeaking={tutorMetrics.isSpeaking}
           eyeContactScore={tutorMetrics.eyeContactScore}
           isMuted={true}
-          isLocal={true}
+          isLocal={localRole === 'tutor'}
           engagementScore={engagementScore}
           isActiveSpeaker={activeSpeaker === 'tutor'}
           showOverlays={showOverlays}
@@ -67,7 +69,7 @@ export function VideoLayout({
           isSpeaking={studentMetrics.isSpeaking}
           eyeContactScore={studentMetrics.eyeContactScore}
           isMuted={false}
-          isLocal={false}
+          isLocal={localRole === 'student'}
           engagementScore={engagementScore}
           studentState={studentState as StudentState}
           isActiveSpeaker={activeSpeaker === 'student'}
@@ -85,6 +87,7 @@ export function VideoLayout({
   const mainMetrics = isActiveSpeakerTutor ? tutorMetrics : studentMetrics;
   const mainIsSpeaking = mainMetrics.isSpeaking;
   const mainEyeContact = mainMetrics.eyeContactScore;
+  const mainIsLocal = localRole === activeSpeaker;
 
   return (
     <VideoTile
@@ -93,7 +96,7 @@ export function VideoLayout({
       isSpeaking={mainIsSpeaking}
       eyeContactScore={mainEyeContact}
       isMuted={isActiveSpeakerTutor}
-      isLocal={isActiveSpeakerTutor}
+      isLocal={mainIsLocal}
       engagementScore={engagementScore}
       studentState={isActiveSpeakerTutor ? undefined : (studentState as StudentState)}
       isActiveSpeaker={true}

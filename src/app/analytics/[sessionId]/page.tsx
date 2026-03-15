@@ -13,6 +13,11 @@ import { EngagementHeatmap } from '@/components/analytics/EngagementHeatmap';
 import { AIAnalysis } from '@/components/analytics/AIAnalysis';
 import { NudgeEffectivenessChart } from '@/components/analytics/NudgeEffectivenessChart';
 import { StudentStateTimeline } from '@/components/analytics/StudentStateTimeline';
+import { SessionNarrativeSummary } from '@/components/analytics/SessionNarrativeSummary';
+import { ExpressionRadarChart } from '@/components/analytics/ExpressionRadarChart';
+import { EmotionDistributionChart } from '@/components/analytics/EmotionDistributionChart';
+import { ExpressionTimelineChart } from '@/components/analytics/ExpressionTimelineChart';
+import { FacialExpressionCard } from '@/components/analytics/FacialExpressionCard';
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -29,21 +34,55 @@ export default function AnalyticsPage() {
   const [dbSession, setDbSession] = useState<StoredSession | null>(null);
   const hasInMemoryData = storeSessionId === sessionIdParam && storeMetrics.length > 0;
   const [loading, setLoading] = useState(!hasInMemoryData);
+  const [dataSource, setDataSource] = useState<'memory' | 'server' | 'local' | null>(hasInMemoryData ? 'memory' : null);
 
   useEffect(() => {
     if (hasInMemoryData) return;
 
-    // Load from IndexedDB
     let cancelled = false;
-    loadSession(sessionIdParam)
-      .then((session) => {
-        if (!cancelled) {
-          setDbSession(session);
+
+    // Try server API first
+    fetch(`/api/sessions/${sessionIdParam}`)
+      .then(res => {
+        if (!res.ok) throw new Error('not found');
+        return res.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        if (data.session && data.metrics?.length > 0) {
+          // Convert server format to StoredSession
+          setDbSession({
+            id: data.session.id,
+            config: data.session.config,
+            startTime: new Date(data.session.start_time).getTime(),
+            endTime: data.session.end_time ? new Date(data.session.end_time).getTime() : null,
+            status: data.session.status,
+            metricsHistory: data.metrics,
+            nudgeHistory: data.nudges || [],
+          });
+          setDataSource('server');
           setLoading(false);
+          return;
         }
+        throw new Error('no server data');
       })
       .catch(() => {
-        if (!cancelled) setLoading(false);
+        if (cancelled) return;
+        // Fall back to IndexedDB
+        loadSession(sessionIdParam)
+          .then((session) => {
+            if (!cancelled) {
+              setDbSession(session);
+              setDataSource(session ? 'local' : null);
+              setLoading(false);
+            }
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setDataSource(null);
+              setLoading(false);
+            }
+          });
       });
     return () => { cancelled = true; };
   }, [sessionIdParam, hasInMemoryData]);
@@ -164,9 +203,35 @@ export default function AnalyticsPage() {
     };
   }, [metricsHistory, nudgeHistory]);
 
+  const getEngagementQuality = (score: number): string => {
+    if (score >= 75) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 45) return 'Fair';
+    return 'Needs attention';
+  };
+
+  const getTurnsQuality = (turns: number): string => {
+    if (turns >= 10) return 'Active dialogue';
+    if (turns >= 5) return 'Good exchange';
+    return 'Limited interaction';
+  };
+
+  const getEyeContactQuality = (pct: number): string => {
+    if (pct >= 70) return 'Strong focus';
+    if (pct >= 50) return 'Moderate';
+    return 'Low attention';
+  };
+
   const formatTime = (ms: number) => {
     const mins = Math.floor(ms / 60000);
     const secs = Math.floor((ms % 60000) / 1000);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatMinuteTime = (ms: number) => {
+    const mins = Math.floor(ms / 60000);
+    const secs = Math.floor((ms % 60000) / 1000);
+    if (mins === 0) return `${secs}s`;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -196,207 +261,337 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">Session Report</h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <h1 className="text-3xl font-bold text-white">Session Report</h1>
+            <p className="text-gray-400 text-sm mt-2">
               {sessionConfig.subject} — {sessionConfig.sessionType} — {summary.durationMinutes} min
             </p>
-            <p className="text-gray-600 text-xs mt-0.5 font-mono">{sessionIdParam}</p>
+            <p className="text-gray-600 text-xs mt-1 font-mono">{sessionIdParam}</p>
+
+            {/* Data provenance badge */}
+            <div className="flex items-center gap-3 mt-3">
+              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                dataSource === 'server' ? 'bg-green-900/50 text-green-300' :
+                dataSource === 'memory' ? 'bg-blue-900/50 text-blue-300' :
+                dataSource === 'local' ? 'bg-yellow-900/50 text-yellow-300' :
+                'bg-gray-800 text-gray-400'
+              }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                {dataSource === 'server' ? 'Synced' :
+                 dataSource === 'memory' ? 'Live session' :
+                 dataSource === 'local' ? 'Local only' :
+                 'Unknown source'}
+              </span>
+              <span className="text-gray-600 text-xs">
+                {metricsHistory.length} data points at ~{metricsHistory.length > 1 ? Math.round((metricsHistory[metricsHistory.length-1].timestamp - metricsHistory[0].timestamp) / metricsHistory.length / 100) / 10 : 0}s intervals
+              </span>
+            </div>
           </div>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium"
           >
             New Session
           </button>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Engagement</p>
-            <p className="text-2xl font-bold text-white">{summary.avgEngagement}</p>
-            <p className="text-xs text-gray-600">avg score</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Duration</p>
-            <p className="text-2xl font-bold text-white">{summary.durationMinutes}</p>
-            <p className="text-xs text-gray-600">minutes</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Nudges</p>
-            <p className="text-2xl font-bold text-white">{summary.nudgesTriggered}</p>
-            <p className="text-xs text-gray-600">coaching tips</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Interruptions</p>
-            <p className="text-2xl font-bold text-white">{summary.interruptions}</p>
-            <p className="text-xs text-gray-600">detected</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Turn Count</p>
-            <p className="text-2xl font-bold text-white">{summary.turnCount ?? 0}</p>
-            <p className="text-xs text-gray-600">speaker switches</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Avg Turn Gap</p>
-            <p className="text-2xl font-bold text-white">
-              {summary.avgTurnGapMs ? `${(summary.avgTurnGapMs / 1000).toFixed(1)}s` : 'N/A'}
-            </p>
-            <p className="text-xs text-gray-600">response time</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Tutor Eye Contact</p>
-            <p className="text-2xl font-bold text-white">{summary.avgTutorEye}%</p>
-            <p className="text-xs text-gray-600">average</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Student Eye Contact</p>
-            <p className="text-2xl font-bold text-white">{summary.avgStudentEye}%</p>
-            <p className="text-xs text-gray-600">average</p>
-          </div>
-        </div>
-
-        {/* Timeline chart */}
+        {/* SESSION NARRATIVE SUMMARY */}
         {startTime && (
-          <div className="mb-6">
-            <TimelineChart metricsHistory={metricsHistory} startTime={startTime} />
-          </div>
-        )}
-
-        {/* Student state timeline */}
-        {startTime && metricsHistory.length > 10 && (
-          <div className="mb-6">
-            <StudentStateTimeline metricsHistory={metricsHistory} startTime={startTime} />
-          </div>
-        )}
-
-        {/* Engagement heatmap */}
-        {startTime && metricsHistory.length > 10 && (
-          <div className="mb-6">
-            <EngagementHeatmap metricsHistory={metricsHistory} startTime={startTime} />
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
-          {/* Speaking time chart */}
-          <SpeakingTimeChart
-            tutorPercent={summary.talkTimeRatio.tutor}
-            studentPercent={summary.talkTimeRatio.student}
-            tutorName={sessionConfig.tutorName}
-            studentName={sessionConfig.studentName}
-          />
-
-          {/* Eye contact */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Eye Contact</h3>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400">{sessionConfig.tutorName}</span>
-                  <span className="text-white">{summary.avgTutorEye}%</span>
-                </div>
-                <div className="h-2 bg-gray-800 rounded-full">
-                  <div className="h-2 bg-blue-500 rounded-full transition-all" style={{ width: `${summary.avgTutorEye}%` }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400">{sessionConfig.studentName}</span>
-                  <span className="text-white">{summary.avgStudentEye}%</span>
-                </div>
-                <div className="h-2 bg-gray-800 rounded-full">
-                  <div className="h-2 bg-purple-500 rounded-full transition-all" style={{ width: `${summary.avgStudentEye}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Speaking time */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Speaking Time</h3>
-            <div className="flex h-8 rounded-lg overflow-hidden mb-2">
-              <div
-                className="bg-blue-500 flex items-center justify-center text-xs font-medium"
-                style={{ width: `${summary.talkTimeRatio.tutor}%` }}
-              >
-                {summary.talkTimeRatio.tutor}%
-              </div>
-              <div
-                className="bg-purple-500 flex items-center justify-center text-xs font-medium"
-                style={{ width: `${summary.talkTimeRatio.student}%` }}
-              >
-                {summary.talkTimeRatio.student}%
-              </div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>{sessionConfig.tutorName}</span>
-              <span>{sessionConfig.studentName}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Nudge effectiveness */}
-        {startTime && nudgeHistory.length > 0 && (
-          <div className="mb-6">
-            <NudgeEffectivenessChart
+          <div className="mb-8">
+            <SessionNarrativeSummary
               metricsHistory={metricsHistory}
               nudgeHistory={nudgeHistory}
+              sessionConfig={sessionConfig}
               startTime={startTime}
             />
           </div>
         )}
 
-        {/* Key moments */}
+        {/* QUICK STATS */}
+        <div className="mb-8">
+          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            Quick Stats
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Engagement */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500 font-medium">Engagement</p>
+                <p className="text-lg font-bold text-white">{summary.avgEngagement}</p>
+              </div>
+              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-2">
+                <div
+                  className={`h-full ${
+                    summary.avgEngagement >= 75 ? 'bg-green-500' :
+                    summary.avgEngagement >= 60 ? 'bg-blue-500' :
+                    summary.avgEngagement >= 45 ? 'bg-amber-500' :
+                    'bg-red-500'
+                  }`}
+                  style={{ width: `${Math.min(summary.avgEngagement, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400">{getEngagementQuality(summary.avgEngagement)}</p>
+            </div>
+
+            {/* Duration */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-xs text-gray-500 font-medium mb-2">Duration</p>
+              <p className="text-lg font-bold text-white">{summary.durationMinutes}</p>
+              <p className="text-xs text-gray-400">minutes</p>
+            </div>
+
+            {/* Nudges */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-xs text-gray-500 font-medium mb-2">Nudges</p>
+              <p className="text-lg font-bold text-white">{summary.nudgesTriggered}</p>
+              <p className="text-xs text-gray-400">coaching tips</p>
+            </div>
+
+            {/* Turns */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500 font-medium">Turns</p>
+                <p className="text-lg font-bold text-white">{summary.turnCount ?? 0}</p>
+              </div>
+              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-2">
+                <div
+                  className={`h-full ${
+                    (summary.turnCount ?? 0) >= 10 ? 'bg-green-500' :
+                    (summary.turnCount ?? 0) >= 5 ? 'bg-blue-500' :
+                    'bg-amber-500'
+                  }`}
+                  style={{ width: `${Math.min(((summary.turnCount ?? 0) / 20) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400">{getTurnsQuality(summary.turnCount ?? 0)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ENGAGEMENT OVER TIME */}
+        {startTime && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Engagement Over Time
+            </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <TimelineChart metricsHistory={metricsHistory} startTime={startTime} />
+            </div>
+          </div>
+        )}
+
+        {/* FACIAL EXPRESSION ANALYSIS */}
+        {metricsHistory.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Facial Expression Analysis
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <ExpressionRadarChart metricsHistory={metricsHistory} />
+              <EmotionDistributionChart metricsHistory={metricsHistory} />
+            </div>
+          </div>
+        )}
+
+        {/* EXPRESSION TIMELINE */}
+        {startTime && metricsHistory.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Expression Timeline
+            </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <ExpressionTimelineChart metricsHistory={metricsHistory} startTime={startTime} />
+            </div>
+          </div>
+        )}
+
+        {/* DETAILED EXPRESSION BREAKDOWN */}
+        {metricsHistory.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Detailed Expression Breakdown
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <FacialExpressionCard
+                metricsHistory={metricsHistory}
+                participant="student"
+                participantName={sessionConfig.studentName}
+              />
+              <FacialExpressionCard
+                metricsHistory={metricsHistory}
+                participant="tutor"
+                participantName={sessionConfig.tutorName}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* STUDENT STATE TIMELINE */}
+        {startTime && metricsHistory.length > 10 && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Student State Timeline
+            </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <StudentStateTimeline metricsHistory={metricsHistory} startTime={startTime} />
+            </div>
+          </div>
+        )}
+
+        {/* COMMUNICATION & INTERACTION */}
+        <div className="mb-8">
+          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            Communication &amp; Interaction
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Speaking Time */}
+            <SpeakingTimeChart
+              tutorPercent={summary.talkTimeRatio.tutor}
+              studentPercent={summary.talkTimeRatio.student}
+              tutorName={sessionConfig.tutorName}
+              studentName={sessionConfig.studentName}
+            />
+
+            {/* Eye Contact */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="text-sm font-medium text-gray-300 mb-4">Eye Contact</h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-medium text-gray-400">{sessionConfig.tutorName}</span>
+                    <span className="text-sm font-bold text-white">{summary.avgTutorEye}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${summary.avgTutorEye}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {summary.avgTutorEye >= 70 ? 'Strong focus' : summary.avgTutorEye >= 50 ? 'Moderate' : 'Low attention'}
+                  </p>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-medium text-gray-400">{sessionConfig.studentName}</span>
+                    <span className="text-sm font-bold text-white">{summary.avgStudentEye}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-purple-500 rounded-full" style={{ width: `${summary.avgStudentEye}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {getEyeContactQuality(summary.avgStudentEye)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ENGAGEMENT HEATMAP */}
+        {startTime && metricsHistory.length > 10 && (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Engagement Heatmap
+            </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <EngagementHeatmap metricsHistory={metricsHistory} startTime={startTime} />
+            </div>
+          </div>
+        )}
+
+        {/* COACHING & NUDGES */}
+        {(startTime && nudgeHistory.length > 0) || summary.keyMoments.length > 0 ? (
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Coaching &amp; Nudges
+            </h2>
+
+            {/* Nudge effectiveness */}
+            {startTime && nudgeHistory.length > 0 && (
+              <div className="mb-6">
+                <NudgeEffectivenessChart
+                  metricsHistory={metricsHistory}
+                  nudgeHistory={nudgeHistory}
+                  startTime={startTime}
+                />
+              </div>
+            )}
+
+            {/* Nudge history */}
+            {nudgeHistory.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <h3 className="text-sm font-medium text-gray-300 mb-4">Nudge History</h3>
+                <div className="space-y-3">
+                  {nudgeHistory.map((nudge) => (
+                    <div key={nudge.id} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
+                      <span className="text-lg">{nudge.icon}</span>
+                      <div className="flex-1">
+                        <p className="text-gray-300">{nudge.message}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          at {startTime ? formatMinuteTime(nudge.timestamp - startTime) : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* KEY MOMENTS */}
         {summary.keyMoments.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Key Moments</h3>
-            <div className="space-y-2">
-              {summary.keyMoments.map((moment, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className="text-gray-600 font-mono text-xs w-12">{formatTime(moment.time)}</span>
-                  <span className={moment.type === 'drop' ? 'text-red-400' : 'text-green-400'}>
-                    {moment.type === 'drop' ? '↓' : '↑'}
-                  </span>
-                  <span className="text-gray-300">{moment.description}</span>
-                </div>
-              ))}
+          <div className="mb-8">
+            <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+              Key Moments
+            </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="space-y-3">
+                {summary.keyMoments.map((moment, i) => (
+                  <div key={i} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
+                    <span className="text-lg mt-0.5">
+                      {moment.type === 'drop' ? '📉' : '📈'}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-gray-300">{moment.description}</p>
+                      <p className="text-xs text-gray-600 mt-1">at {formatMinuteTime(moment.time)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Nudge history */}
-        {nudgeHistory.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Coaching Nudges</h3>
-            <div className="space-y-2">
-              {nudgeHistory.map((nudge) => (
-                <div key={nudge.id} className="flex items-start gap-3 text-sm">
-                  <span className="text-gray-600 font-mono text-xs w-12">
-                    {startTime ? formatTime(nudge.timestamp - startTime) : ''}
-                  </span>
-                  <span>{nudge.icon}</span>
-                  <span className="text-gray-300">{nudge.message}</span>
-                </div>
+        {/* RECOMMENDATIONS */}
+        <div className="mb-8">
+          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-4 pb-3 border-b border-gray-800">
+            Recommendations
+          </h2>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <ul className="space-y-3">
+              {summary.recommendations.map((rec, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
+                  <span className="text-base mt-0.5">💡</span>
+                  <span>{rec}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-        )}
+        </div>
 
-        {/* Recommendations */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Recommendations</h3>
-          <ul className="space-y-2">
-            {summary.recommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
-                <span className="text-blue-400 mt-0.5">-</span>
-                {rec}
-              </li>
-            ))}
-          </ul>
+        {/* Methodology note */}
+        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 mb-6">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            <span className="font-medium text-gray-400">How these metrics work:</span>{' '}
+            Engagement scores are computed from eye contact (gaze estimation via MediaPipe), speaking time balance,
+            audio energy, interruption frequency, and attention stability. These are calibrated heuristics, not
+            validated psychometric instruments. Student states (confused, drifting, etc.) are inferred from
+            facial expression + gaze + silence patterns. See the{' '}
+            <a href="/docs/methodology" className="text-blue-400 hover:underline">analysis methodology</a>{' '}
+            for full details and known limitations.
+          </p>
         </div>
 
         {/* AI Analysis */}

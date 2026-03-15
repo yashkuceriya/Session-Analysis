@@ -49,6 +49,8 @@ function makeSnapshot(overrides: {
     session,
     engagementScore: overrides.engagementScore ?? 70,
     studentState: 'engaged',
+    tutorExpression: null,
+    studentExpression: null,
   };
 }
 

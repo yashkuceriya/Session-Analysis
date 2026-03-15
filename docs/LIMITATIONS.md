@@ -30,9 +30,14 @@
 
 ## Architecture
 
-- **Browser-only persistence**: Session data is stored in IndexedDB in the tutor's browser. Clearing browser data loses all sessions. No cross-device sync.
-- **No WebRTC infrastructure**: The live camera mode uses a second getUserMedia call, not a real peer-to-peer connection. True remote sessions would require WebRTC signaling infrastructure.
-- **Single face per tile**: The system assumes one face per video tile. Group sessions (multiple students) are not supported.
+- **Dual-layer persistence**: Session data is stored in two layers:
+  - **Primary:** Supabase or file-based server backend (via `/api/sessions` endpoints). Metrics snapshots are sent every 5 seconds.
+  - **Fallback:** IndexedDB (offline cache in tutor's browser). If server is unavailable, the session still persists locally.
+  - **No cross-device sync:** Session data does not sync across devices. Clearing browser storage clears IndexedDB but server data may persist.
+
+- **WebRTC signaling server:** When in room mode (`/session?room=xyz`), the system uses a WebSocket-based signaling server to negotiate peer connections. The actual peer-to-peer video/audio is handled by WebRTC, but signaling and initial handshake go through the server.
+
+- **Multi-participant scaffolding:** Basic infrastructure exists for multi-participant support (MeshConnection, ParticipantList), but the analysis engine is currently tuned for tutor-student dyads. Group sessions (multiple students) are not fully supported.
 
 ## Performance
 

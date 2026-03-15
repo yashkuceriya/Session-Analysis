@@ -17,11 +17,14 @@ import { TimelineStrip } from '@/components/session/TimelineStrip';
 import { MetricsSidebar } from '@/components/session/MetricsSidebar';
 import { NudgeHistory } from '@/components/session/NudgeHistory';
 import { NudgeSettingsPanel } from '@/components/settings/NudgeSettingsPanel';
+import { AccessibilityPanel } from '@/components/accessibility/AccessibilityPanel';
 import { ChatPanel } from '@/components/session/ChatPanel';
 // Recording & Screen Share
 import { RecordingIndicator } from '@/components/session/RecordingIndicator';
 import { ScreenShareBanner } from '@/components/session/ScreenShareBanner';
 import { ReactionOverlay } from '@/components/session/ReactionOverlay';
+import { ConnectionRecovery } from '@/components/session/ConnectionRecovery';
+import { QualityIndicator } from '@/components/session/QualityIndicator';
 // Error handling
 import { SessionErrorBoundary } from '@/components/session/SessionErrorBoundary';
 // Accessibility
@@ -62,6 +65,7 @@ function SessionPageInner() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const selfViewRef = useRef<HTMLVideoElement>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAccessibility, setShowAccessibility] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const saveIntervalRef = useRef<number | null>(null);
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; timestamp: number }>>([]);
@@ -103,12 +107,14 @@ function SessionPageInner() {
   const toggleHud = useSessionStore((s) => s.toggleHud);
   const isAnalysisVisible = useSessionStore((s) => s.isAnalysisVisible);
   const toggleAnalysis = useSessionStore((s) => s.toggleAnalysis);
+  const setCallState = useSessionStore((s) => s.setCallState);
+  const callState = useSessionStore((s) => s.callState);
 
   // Accessibility
   const captionsEnabled = useAccessibilityStore((s) => s.captionsEnabled);
 
   // Adaptive quality monitoring
-  const { quality: streamQuality } = useAdaptiveQuality(rtcPeerConnection);
+  const { quality: streamQuality, bandwidth: streamBandwidth } = useAdaptiveQuality(rtcPeerConnection);
 
   // Local webcam + mic
   const {
@@ -220,6 +226,7 @@ function SessionPageInner() {
     h: () => toggleHud(),
     a: () => toggleAnalysis(),
     c: () => toggleChat(),
+    '!': () => setShowAccessibility(prev => !prev),
     '?': () => setShowShortcutsHelp(prev => !prev),
     Escape: () => {
       setShowSettings(false);
@@ -252,6 +259,7 @@ function SessionPageInner() {
       if (!isActive) {
         startSession(sessionConfig);
       }
+      setCallState(isRoomMode ? 'waiting' : 'connected');
     };
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -308,8 +316,17 @@ function SessionPageInner() {
       },
       onPeerState: (state: ConnectionState) => {
         setPeerConnected(state === 'connected');
-        if (state === 'reconnecting') setConnectionQuality('reconnecting');
-        else if (state === 'connected') setConnectionQuality('good');
+        if (state === 'reconnecting') {
+          setConnectionQuality('reconnecting');
+          setCallState('reconnecting');
+        } else if (state === 'connected') {
+          setConnectionQuality('good');
+          setCallState('connected');
+        } else if (state === 'disconnected') {
+          setCallState('waiting');
+        } else if (state === 'connecting') {
+          setCallState('connecting');
+        }
       },
       onDataMessage: (msg) => {
         // Handle incoming data channel messages (chat, reactions)
@@ -466,6 +483,7 @@ function SessionPageInner() {
     const sid = state.sessionId;
 
     // Navigate IMMEDIATELY — don't wait for saves
+    setCallState('ended');
     endSession();
     peerRef.current?.stop();
     router.push(`/analytics/${sid}`);
@@ -541,6 +559,16 @@ function SessionPageInner() {
         onResume={resumeRecording}
       />
 
+      {/* Connection recovery overlay */}
+      {isRoomMode && (callState === 'reconnecting' || callState === 'connecting') && (
+        <ConnectionRecovery
+          status={callState === 'reconnecting' ? 'reconnecting' : 'reconnecting'}
+          onRetry={() => {
+            peerRef.current?.stop();
+          }}
+        />
+      )}
+
       {/* Room mode status badge with invite link */}
       {isRoomMode && (
         <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-gray-900/70 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs">
@@ -568,6 +596,9 @@ function SessionPageInner() {
           }>
             {peerConnected ? (connectionQuality === 'reconnecting' ? 'Reconnecting...' : 'Connected') : 'Waiting...'}
           </span>
+          {peerConnected && (
+            <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
+          )}
         </div>
       )}
 
@@ -587,6 +618,7 @@ function SessionPageInner() {
                 viewMode={viewMode}
                 activeSpeaker={activeSpeaker}
                 showOverlays={true}
+                localRole={role}
               />
             </EngagementRing>
           ) : (
@@ -599,6 +631,7 @@ function SessionPageInner() {
               viewMode={viewMode}
               activeSpeaker={activeSpeaker}
               showOverlays={false}
+              localRole={role}
             />
           )}
 
@@ -641,7 +674,7 @@ function SessionPageInner() {
             videoRef={localVideoRef}
             name={localLabel || 'You'}
             isMuted={!isMicEnabled}
-            eyeContactScore={currentMetrics?.tutor.eyeContactScore}
+            eyeContactScore={role === 'tutor' ? currentMetrics?.tutor.eyeContactScore : currentMetrics?.student.eyeContactScore}
           />
         )}
 
@@ -670,11 +703,19 @@ function SessionPageInner() {
       <ControlsBar
         onEndSession={handleEndSession}
         onToggleSettings={() => setShowSettings(!showSettings)}
+        onStartScreenShare={handleStartScreenShare}
+        onStopScreenShare={handleStopScreenShare}
+        isScreenSharing={isSharing}
+        onStartRecording={handleStartRecording}
+        onStopRecording={handleStopRecording}
         visible={controlsVisible}
       />
 
       {/* Settings modal */}
       <NudgeSettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Accessibility settings */}
+      <AccessibilityPanel isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} />
 
       {/* Live captions */}
       <LiveCaptions isEnabled={captionsEnabled} />

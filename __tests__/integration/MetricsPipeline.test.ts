@@ -213,6 +213,8 @@ describe('Coaching Rules Boundary Conditions', () => {
       session: { interruptionCount: 0, silenceDurationCurrent: silenceMs, engagementTrend: 'stable' as const, attentionDriftDetected: false, elapsedMs: 600000, turnTakingGapMs: 0, turnCount: 0, studentState: 'engaged' as const },
       engagementScore: 50,
       studentState: 'engaged' as const,
+      tutorExpression: null,
+      studentExpression: null,
     });
 
     // Just under threshold
@@ -237,6 +239,8 @@ describe('Coaching Rules Boundary Conditions', () => {
       session: { interruptionCount: 0, silenceDurationCurrent: silenceMs, engagementTrend: 'stable' as const, attentionDriftDetected: false, elapsedMs: 600000, turnTakingGapMs: 0, turnCount: 0, studentState: 'engaged' as const },
       engagementScore: 50,
       studentState: 'engaged' as const,
+      tutorExpression: null,
+      studentExpression: null,
     });
 
     // At 2.5 minutes: practice triggers, lecture doesn't
@@ -255,6 +259,8 @@ describe('Coaching Rules Boundary Conditions', () => {
       session: { interruptionCount: 0, silenceDurationCurrent: 0, engagementTrend: 'stable' as const, attentionDriftDetected: false, elapsedMs: 600000, turnTakingGapMs: 0, turnCount: 0, studentState: 'engaged' as const },
       engagementScore: 50,
       studentState: 'engaged' as const,
+      tutorExpression: null,
+      studentExpression: null,
     });
 
     // 75% tutor talk: OK for lecture, triggers for practice/discussion

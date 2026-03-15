@@ -9,10 +9,24 @@ import { useRef, useEffect } from 'react';
 interface ControlsBarProps {
   onEndSession: () => void;
   onToggleSettings: () => void;
+  onStartScreenShare?: () => void;
+  onStopScreenShare?: () => void;
+  isScreenSharing?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
   visible?: boolean;
 }
 
-export function ControlsBar({ onEndSession, onToggleSettings, visible = true }: ControlsBarProps) {
+export function ControlsBar({
+  onEndSession,
+  onToggleSettings,
+  onStartScreenShare,
+  onStopScreenShare,
+  isScreenSharing = false,
+  onStartRecording,
+  onStopRecording,
+  visible = true,
+}: ControlsBarProps) {
   const isMicEnabled = useSessionStore((s) => s.isMicEnabled);
   const isCameraEnabled = useSessionStore((s) => s.isCameraEnabled);
   const viewMode = useSessionStore((s) => s.viewMode);
@@ -32,10 +46,6 @@ export function ControlsBar({ onEndSession, onToggleSettings, visible = true }: 
   const controlsRef = useRef<HTMLDivElement>(null);
 
   const isControlsVisible = visible && autoHideVisible;
-
-  const handleRecordingToggle = () => {
-    setRecording(!isRecording);
-  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pointer-events-none z-40">
@@ -102,15 +112,17 @@ export function ControlsBar({ onEndSession, onToggleSettings, visible = true }: 
 
         {/* Group 2: Screen Share & Chat */}
         <button
-          onClick={() => {}}
-          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors relative group"
-          title="Share screen"
+          onClick={() => isScreenSharing ? onStopScreenShare?.() : onStartScreenShare?.()}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
+            isScreenSharing ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
         >
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20m0 0l-.75 3M9 20H5a1 1 0 01-1-1v-1a6 6 0 0112 0v1a1 1 0 01-1 1h-4m0 0l.75 3m6-18l.75 3m0 0l.75-3M21 5a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1h18z" />
           </svg>
           <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Share Screen
+            {isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
           </span>
         </button>
 
@@ -189,7 +201,7 @@ export function ControlsBar({ onEndSession, onToggleSettings, visible = true }: 
         </button>
 
         <button
-          onClick={handleRecordingToggle}
+          onClick={() => isRecording ? onStopRecording?.() : onStartRecording?.()}
           className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
             isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'
           }`}

@@ -47,6 +47,8 @@ function createMetricSnapshot(
     },
     engagementScore,
     studentState,
+    tutorExpression: null,
+    studentExpression: null,
   };
 }
 
