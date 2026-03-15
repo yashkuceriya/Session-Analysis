@@ -10,6 +10,7 @@ import { SessionConfig } from '@/lib/session/types';
 import { TimelineChart } from '@/components/analytics/TimelineChart';
 import { SpeakingTimeChart } from '@/components/analytics/SpeakingTimeChart';
 import { EngagementHeatmap } from '@/components/analytics/EngagementHeatmap';
+import { AIAnalysis } from '@/components/analytics/AIAnalysis';
 import { NudgeEffectivenessChart } from '@/components/analytics/NudgeEffectivenessChart';
 import { StudentStateTimeline } from '@/components/analytics/StudentStateTimeline';
 
@@ -397,6 +398,9 @@ export default function AnalyticsPage() {
             ))}
           </ul>
         </div>
+
+        {/* AI Analysis */}
+        <AIAnalysis sessionId={sessionIdParam} />
       </div>
     </div>
   );

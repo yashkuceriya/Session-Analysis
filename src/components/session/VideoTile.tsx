@@ -46,23 +46,30 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
         } else if (forwardedRef) {
           (forwardedRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
         }
-        // Check immediately when ref is assigned
-        if (el && (el.srcObject || el.src)) {
-          setHasVideoSrc(true);
+        // Listen for video becoming ready
+        if (el) {
+          const onReady = () => setHasVideoSrc(true);
+          el.addEventListener('loadedmetadata', onReady);
+          el.addEventListener('playing', onReady);
+          // Check immediately
+          if (el.srcObject || (el.src && el.readyState >= 1)) {
+            setHasVideoSrc(true);
+          }
         }
       },
       [forwardedRef]
     );
 
-    // Poll for video source (handles async srcObject assignment)
+    // Poll as backup (handles edge cases)
     useEffect(() => {
       const check = () => {
         const el = localVideoRef.current;
-        const hasSrc = !!(el && (el.srcObject || (el.src && el.src !== '' && el.src !== window.location.href)));
-        setHasVideoSrc(hasSrc);
+        if (el && (el.srcObject || el.readyState >= 1)) {
+          setHasVideoSrc(true);
+        }
       };
       check();
-      const interval = setInterval(check, 200); // Check more frequently
+      const interval = setInterval(check, 150);
       return () => clearInterval(interval);
     }, []);
 

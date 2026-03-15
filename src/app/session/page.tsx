@@ -444,14 +444,20 @@ function SessionPageInner() {
     if (blob) downloadRecording(blob);
   }, [stopRecording, downloadRecording]);
 
-  const handleEndSession = async () => {
+  const handleEndSession = () => {
     const state = useSessionStore.getState();
+    const sid = state.sessionId;
+
+    // Navigate IMMEDIATELY — don't wait for saves
+    endSession();
     peerRef.current?.stop();
-    if (state.sessionId) {
+    router.push(`/analytics/${sid}`);
+
+    // Fire-and-forget: save in background
+    if (sid) {
       const allMetrics = [...state.metricsArchive, ...state.metricsHistory];
-      // Save to IndexedDB
-      await saveSession({
-        id: state.sessionId,
+      saveSession({
+        id: sid,
         config: state.sessionConfig,
         startTime: state.startTime!,
         endTime: Date.now(),
@@ -459,19 +465,14 @@ function SessionPageInner() {
         metricsHistory: allMetrics,
         nudgeHistory: state.nudgeHistory,
       }).catch(() => {});
-      // Save final batch to Supabase + mark completed
       const unsyncedSnapshots = allMetrics.slice(lastSyncedIndexRef.current);
-      await Promise.all([
-        fetch(`/api/sessions/${state.sessionId}/metrics`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ snapshots: unsyncedSnapshots, nudges: state.nudgeHistory }),
-        }).catch(() => {}),
-        fetch(`/api/sessions/${state.sessionId}`, { method: 'PATCH' }).catch(() => {}),
-      ]);
+      fetch(`/api/sessions/${sid}/metrics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshots: unsyncedSnapshots, nudges: state.nudgeHistory }),
+      }).catch(() => {});
+      fetch(`/api/sessions/${sid}`, { method: 'PATCH' }).catch(() => {});
     }
-    endSession();
-    router.push(`/analytics/${state.sessionId}`);
   };
 
   // Display names
@@ -523,14 +524,25 @@ function SessionPageInner() {
         onResume={resumeRecording}
       />
 
-      {/* Room mode status badge (overlay instead of header bar) */}
+      {/* Room mode status badge with invite link */}
       {isRoomMode && (
         <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-gray-900/70 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs">
           <span className="text-gray-400">
             Room: <span className="text-white font-mono">{roomId}</span>
           </span>
+          <button
+            onClick={() => {
+              const joinUrl = `${window.location.origin}/join/${roomId}`;
+              navigator.clipboard.writeText(joinUrl).then(() => {
+                alert('Join link copied! Share with your student.');
+              });
+            }}
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            Copy invite link
+          </button>
           <div className={`w-2 h-2 rounded-full ${
-            peerConnected ? (connectionQuality === 'excellent' ? 'bg-green-500' : connectionQuality === 'good' ? 'bg-green-500' : connectionQuality === 'poor' ? 'bg-yellow-500' : 'bg-orange-500 animate-pulse')
+            peerConnected ? (connectionQuality === 'excellent' || connectionQuality === 'good' ? 'bg-green-500' : connectionQuality === 'poor' ? 'bg-yellow-500' : 'bg-orange-500 animate-pulse')
             : 'bg-yellow-500 animate-pulse'
           }`} />
           <span className={
