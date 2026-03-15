@@ -248,16 +248,33 @@ function SessionPageInner() {
   // Start local media + session on mount
   useEffect(() => {
     const init = async () => {
-      const stream = await startStream();
-      if (stream && localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      await startStream();
       if (!isActive) {
         startSession(sessionConfig);
       }
     };
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep local video element in sync with stream (handles ref timing issues)
+  useEffect(() => {
+    if (!localStream) return;
+    const attachStream = () => {
+      if (localVideoRef.current && localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+      }
+    };
+    // Try immediately + retry on interval until attached
+    attachStream();
+    const interval = setInterval(attachStream, 100);
+    // Stop retrying once video is playing
+    const onPlaying = () => clearInterval(interval);
+    localVideoRef.current?.addEventListener('playing', onPlaying);
+    return () => {
+      clearInterval(interval);
+      localVideoRef.current?.removeEventListener('playing', onPlaying);
+    };
+  }, [localStream]);
 
   // Verify room token if provided
   useEffect(() => {

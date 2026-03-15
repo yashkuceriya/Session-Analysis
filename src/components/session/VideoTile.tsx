@@ -46,30 +46,21 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
         } else if (forwardedRef) {
           (forwardedRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
         }
-        // Listen for video becoming ready
-        if (el) {
-          const onReady = () => setHasVideoSrc(true);
-          el.addEventListener('loadedmetadata', onReady);
-          el.addEventListener('playing', onReady);
-          // Check immediately
-          if (el.srcObject || (el.src && el.readyState >= 1)) {
-            setHasVideoSrc(true);
-          }
-        }
       },
       [forwardedRef]
     );
 
-    // Poll as backup (handles edge cases)
+    // Detect when video has a real source and is playing
     useEffect(() => {
       const check = () => {
         const el = localVideoRef.current;
-        if (el && (el.srcObject || el.readyState >= 1)) {
-          setHasVideoSrc(true);
-        }
+        if (!el) return;
+        // Video is "ready" if it has a srcObject OR is actively playing
+        const ready = !!(el.srcObject || (el.readyState >= 2));
+        if (ready && !hasVideoSrc) setHasVideoSrc(true);
       };
       check();
-      const interval = setInterval(check, 150);
+      const interval = setInterval(check, 100);
       return () => clearInterval(interval);
     }, []);
 
@@ -116,12 +107,14 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
         } ${className}`}
         style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px' }}
       >
-        {/* Video element */}
+        {/* Video element — always rendered, placeholder overlays when no source */}
         <video
           ref={setVideoRef}
           autoPlay
           playsInline
           muted={isLocal || isMuted}
+          onLoadedData={() => setHasVideoSrc(true)}
+          onPlaying={() => setHasVideoSrc(true)}
           className="w-full h-full object-cover"
         />
 
