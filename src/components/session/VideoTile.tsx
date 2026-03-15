@@ -46,18 +46,23 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
         } else if (forwardedRef) {
           (forwardedRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
         }
+        // Check immediately when ref is assigned
+        if (el && (el.srcObject || el.src)) {
+          setHasVideoSrc(true);
+        }
       },
       [forwardedRef]
     );
 
-    // Periodically check if video has a source
+    // Poll for video source (handles async srcObject assignment)
     useEffect(() => {
       const check = () => {
         const el = localVideoRef.current;
-        setHasVideoSrc(!!(el && (el.srcObject || el.src)));
+        const hasSrc = !!(el && (el.srcObject || (el.src && el.src !== '' && el.src !== window.location.href)));
+        setHasVideoSrc(hasSrc);
       };
       check();
-      const interval = setInterval(check, 500);
+      const interval = setInterval(check, 200); // Check more frequently
       return () => clearInterval(interval);
     }, []);
 
