@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { VideoLayout } from '@/components/session/VideoLayout';
 import { FloatingSelfView } from '@/components/session/FloatingSelfView';
 import { ControlsBar } from '@/components/session/ControlsBar';
+import { SessionSkeleton } from '@/components/session/SessionSkeleton';
 // Analysis Overlays
 import { EngagementRing } from '@/components/session/EngagementRing';
 import { StateBadge } from '@/components/session/StateBadge';
@@ -38,6 +39,7 @@ import { useRecording } from '@/hooks/useRecording';
 import { useChatChannel } from '@/hooks/useChatChannel';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useAdaptiveQuality } from '@/hooks/useAdaptiveQuality';
 // State & Services
 import { useSessionStore } from '@/stores/sessionStore';
 import { saveSession, StoredSession } from '@/lib/persistence/SessionStorage';
@@ -45,7 +47,7 @@ import { PeerConnectionV2, ConnectionState } from '@/lib/realtime/PeerConnection
 
 export default function SessionPage() {
   return (
-    <Suspense fallback={<div className="h-screen bg-gray-950 flex items-center justify-center text-gray-400">Loading...</div>}>
+    <Suspense fallback={<SessionSkeleton />}>
       <SessionErrorBoundary>
         <SessionPageInner />
       </SessionErrorBoundary>
@@ -75,6 +77,7 @@ function SessionPageInner() {
   const [peerConnected, setPeerConnected] = useState(false);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'reconnecting'>('good');
+  const [rtcPeerConnection, setRtcPeerConnection] = useState<RTCPeerConnection | null>(null);
 
   // Store
   const isActive = useSessionStore((s) => s.isActive);
@@ -103,6 +106,9 @@ function SessionPageInner() {
 
   // Accessibility
   const captionsEnabled = useAccessibilityStore((s) => s.captionsEnabled);
+
+  // Adaptive quality monitoring
+  const { quality: streamQuality } = useAdaptiveQuality(rtcPeerConnection);
 
   // Local webcam + mic
   const {
@@ -138,6 +144,15 @@ function SessionPageInner() {
   // Toggle hardware tracks
   useEffect(() => { setMicEnabled(isMicEnabled); }, [isMicEnabled, setMicEnabled]);
   useEffect(() => { setCameraEnabled(isCameraEnabled); }, [isCameraEnabled, setCameraEnabled]);
+
+  // Sync adaptive quality to connection quality display (when in room mode)
+  useEffect(() => {
+    if (!isRoomMode) return;
+    if (streamQuality === 'high') setConnectionQuality('excellent');
+    else if (streamQuality === 'medium') setConnectionQuality('good');
+    else if (streamQuality === 'low') setConnectionQuality('poor');
+    else setConnectionQuality('poor'); // audio-only handled same as poor
+  }, [streamQuality, isRoomMode]);
 
   // Face mesh on BOTH video elements (local + remote/demo)
   const localFaceMesh = useFaceMesh(localVideoRef, isActive && streamReady);
@@ -289,12 +304,14 @@ function SessionPageInner() {
     peerRef.current = peer;
     peer.start(localStream);
     peer.ensureDataChannel(); // Create DataChannel for chat/reactions
+    setRtcPeerConnection(peer.getPeerConnection());
 
     return () => {
       peer.stop();
       peerRef.current = null;
       setRemoteStream(null);
       setPeerConnected(false);
+      setRtcPeerConnection(null);
     };
   }, [isRoomMode, roomId, role, localStream, streamReady]);
 
@@ -348,21 +365,45 @@ function SessionPageInner() {
     });
   }, [isRoomMode]);
 
-  // Auto-save session to IndexedDB
+  // Auto-save to IndexedDB + Supabase
+  const lastSyncedIndexRef = useRef(0);
   useEffect(() => {
     if (!isActive || !sessionId) return;
+
+    // Create session in Supabase on start
+    const state = useSessionStore.getState();
+    fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: sessionId, config: state.sessionConfig, startTime: state.startTime }),
+    }).catch(() => {});
+
     const persistSession = () => {
-      const state = useSessionStore.getState();
+      const s = useSessionStore.getState();
+      // IndexedDB (local backup)
       const stored: StoredSession = {
-        id: state.sessionId!,
-        config: state.sessionConfig,
-        startTime: state.startTime!,
+        id: s.sessionId!,
+        config: s.sessionConfig,
+        startTime: s.startTime!,
         endTime: null,
         status: 'active',
-        metricsHistory: [...state.metricsArchive, ...state.metricsHistory],
-        nudgeHistory: state.nudgeHistory,
+        metricsHistory: [...s.metricsArchive, ...s.metricsHistory],
+        nudgeHistory: s.nudgeHistory,
       };
       saveSession(stored).catch(() => {});
+
+      // Supabase (server-side, only send new snapshots)
+      const allMetrics = [...s.metricsArchive, ...s.metricsHistory];
+      const newSnapshots = allMetrics.slice(lastSyncedIndexRef.current);
+      if (newSnapshots.length > 0) {
+        fetch(`/api/sessions/${s.sessionId}/metrics`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snapshots: newSnapshots, nudges: s.nudgeHistory }),
+        }).then(() => {
+          lastSyncedIndexRef.current = allMetrics.length;
+        }).catch(() => {});
+      }
     };
     saveIntervalRef.current = window.setInterval(persistSession, 5000);
     return () => {
@@ -404,15 +445,27 @@ function SessionPageInner() {
     const state = useSessionStore.getState();
     peerRef.current?.stop();
     if (state.sessionId) {
+      const allMetrics = [...state.metricsArchive, ...state.metricsHistory];
+      // Save to IndexedDB
       await saveSession({
         id: state.sessionId,
         config: state.sessionConfig,
         startTime: state.startTime!,
         endTime: Date.now(),
         status: 'completed',
-        metricsHistory: [...state.metricsArchive, ...state.metricsHistory],
+        metricsHistory: allMetrics,
         nudgeHistory: state.nudgeHistory,
       }).catch(() => {});
+      // Save final batch to Supabase + mark completed
+      const unsyncedSnapshots = allMetrics.slice(lastSyncedIndexRef.current);
+      await Promise.all([
+        fetch(`/api/sessions/${state.sessionId}/metrics`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snapshots: unsyncedSnapshots, nudges: state.nudgeHistory }),
+        }).catch(() => {}),
+        fetch(`/api/sessions/${state.sessionId}`, { method: 'PATCH' }).catch(() => {}),
+      ]);
     }
     endSession();
     router.push(`/analytics/${state.sessionId}`);
@@ -426,6 +479,10 @@ function SessionPageInner() {
 
   // Combined metrics history for timeline
   const fullHistory = useMemo(() => [...metricsArchive, ...metricsHistory], [metricsArchive, metricsHistory]);
+
+  if (!streamReady && !streamError) {
+    return <SessionSkeleton />;
+  }
 
   if (streamError) {
     return (
