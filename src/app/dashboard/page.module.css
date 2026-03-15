@@ -1,0 +1,416 @@
+.page {
+  min-height: 100vh;
+  background-color: rgb(15, 15, 15);
+  color: rgb(200, 200, 200);
+}
+
+.header {
+  background: linear-gradient(135deg, rgb(25, 25, 25) 0%, rgb(30, 30, 30) 100%);
+  border-bottom: 1px solid rgb(50, 50, 50);
+  padding: 32px 0;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerContent {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.headerContent h1 {
+  margin: 0 0 8px 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: rgb(255, 255, 255);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgb(150, 150, 150);
+}
+
+.startBtn {
+  display: inline-block;
+  background-color: rgb(59, 130, 246);
+  color: white;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-right: 24px;
+}
+
+.startBtn:hover {
+  background-color: rgb(37, 99, 235);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.startBtn:active {
+  background-color: rgb(29, 78, 216);
+  transform: translateY(0);
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  color: rgb(150, 150, 150);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgb(50, 50, 50);
+  border-top-color: rgb(59, 130, 246);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorContainer {
+  background-color: rgb(25, 25, 25);
+  border: 1px solid rgb(239, 68, 68);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.errorContainer h2 {
+  color: rgb(248, 113, 113);
+  margin: 0 0 8px 0;
+}
+
+.errorContainer p {
+  color: rgb(150, 150, 150);
+  margin: 0;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.emptyContent {
+  text-align: center;
+}
+
+.emptyContent svg {
+  margin-bottom: 24px;
+}
+
+.emptyContent h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+}
+
+.emptyContent p {
+  margin: 0 0 24px 0;
+  color: rgb(150, 150, 150);
+  font-size: 14px;
+}
+
+.emptyBtn {
+  display: inline-block;
+  background-color: rgb(59, 130, 246);
+  color: white;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.emptyBtn:hover {
+  background-color: rgb(37, 99, 235);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.summaryStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat {
+  background: linear-gradient(135deg, rgb(30, 30, 30) 0%, rgb(25, 25, 25) 100%);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 48px;
+  font-weight: 700;
+  color: rgb(59, 130, 246);
+  margin-bottom: 8px;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: rgb(150, 150, 150);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section {
+  background-color: rgb(25, 25, 25);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.section h2 {
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+}
+
+.studentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.sessionsList {
+  overflow-x: auto;
+}
+
+.sessionsHeader {
+  display: grid;
+  grid-template-columns: 150px 150px 120px 100px 120px 50px;
+  gap: 16px;
+  padding: 12px 16px;
+  background-color: rgb(30, 30, 30);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(150, 150, 150);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sessionRow {
+  display: grid;
+  grid-template-columns: 150px 150px 120px 100px 120px 50px;
+  gap: 16px;
+  padding: 16px;
+  background-color: rgb(30, 30, 30);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  text-decoration: none;
+  color: rgb(200, 200, 200);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  align-items: center;
+}
+
+.sessionRow:hover {
+  background-color: rgb(35, 35, 35);
+  border-color: rgb(59, 130, 246);
+  transform: translateX(4px);
+}
+
+.colDate {
+  font-size: 13px;
+  color: rgb(200, 200, 200);
+}
+
+.colSubject {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sessionType {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgb(59, 130, 246);
+  text-transform: uppercase;
+  background-color: rgba(59, 130, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  width: fit-content;
+}
+
+.colStudent {
+  font-size: 13px;
+  color: rgb(200, 200, 200);
+}
+
+.colDuration {
+  font-size: 13px;
+  color: rgb(150, 150, 150);
+}
+
+.colEngagement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.engagementBar {
+  width: 60px;
+  height: 4px;
+  background-color: rgb(40, 40, 40);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.engagementFill {
+  height: 100%;
+  background: linear-gradient(90deg, rgb(34, 197, 94), rgb(59, 130, 246));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.engagementValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(59, 130, 246);
+  width: 35px;
+  text-align: right;
+}
+
+.colAction {
+  text-align: center;
+}
+
+.viewArrow {
+  font-size: 16px;
+  color: rgb(59, 130, 246);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.sessionRow:hover .viewArrow {
+  opacity: 1;
+}
+
+@media (max-width: 1024px) {
+  .sessionsHeader,
+  .sessionRow {
+    grid-template-columns: 120px 120px 100px 80px 100px 40px;
+  }
+
+  .colSubject {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sessionType {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .startBtn {
+    margin-right: 0;
+  }
+
+  .summaryStats {
+    grid-template-columns: 1fr;
+  }
+
+  .studentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sessionsHeader,
+  .sessionRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sessionsHeader {
+    display: none;
+  }
+
+  .sessionRow {
+    background-color: rgb(30, 30, 30);
+    border: 1px solid rgb(50, 50, 50);
+    padding: 16px;
+  }
+
+  .sessionRow > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sessionRow > div::before {
+    content: attr(data-label);
+    font-size: 11px;
+    color: rgb(150, 150, 150);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .colDate::before {
+    content: 'Date';
+  }
+
+  .colSubject::before {
+    content: 'Subject';
+  }
+
+  .colStudent::before {
+    content: 'Student';
+  }
+
+  .colDuration::before {
+    content: 'Duration';
+  }
+
+  .colEngagement::before {
+    content: 'Engagement';
+  }
+}

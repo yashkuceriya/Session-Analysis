@@ -1,0 +1,55 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.chartGroup {
+  background-color: rgb(30, 30, 30);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.chartGroup h3 {
+  margin: 0 0 16px 0;
+  color: rgb(200, 200, 200);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dataPoint {
+  cursor: pointer;
+  transition: r 0.2s ease;
+}
+
+.dataPoint:hover {
+  r: 5;
+}
+
+.bar {
+  transition: fill 0.2s ease;
+}
+
+.bar:hover {
+  fill: rgb(22, 163, 74);
+  filter: brightness(1.1);
+}
+
+.empty {
+  background-color: rgb(30, 30, 30);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  color: rgb(150, 150, 150);
+}

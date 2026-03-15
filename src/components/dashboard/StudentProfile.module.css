@@ -1,0 +1,144 @@
+.card {
+  background: linear-gradient(135deg, rgb(30, 30, 30) 0%, rgb(25, 25, 25) 100%);
+  border: 1px solid rgb(50, 50, 50);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.name {
+  margin: 0;
+  color: rgb(255, 255, 255);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 4px 0 0 0;
+  color: rgb(150, 150, 150);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trend {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.trend[data-trend='improving'] {
+  color: rgb(34, 197, 94);
+}
+
+.trend[data-trend='declining'] {
+  color: rgb(248, 113, 113);
+}
+
+.trend[data-trend='stable'] {
+  color: rgb(156, 163, 175);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background-color: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: rgb(150, 150, 150);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgb(59, 130, 246);
+}
+
+.engagement {
+  margin-bottom: 16px;
+}
+
+.engagementLabel {
+  font-size: 12px;
+  color: rgb(150, 150, 150);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.bar {
+  height: 8px;
+  background-color: rgb(50, 50, 50);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgb(34, 197, 94), rgb(34, 197, 94));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.engagementValue {
+  font-size: 12px;
+  color: rgb(100, 100, 100);
+  text-align: right;
+}
+
+.lastSession {
+  padding-top: 16px;
+  border-top: 1px solid rgb(50, 50, 50);
+  margin-top: auto;
+}
+
+.lastSessionLabel {
+  font-size: 11px;
+  color: rgb(150, 150, 150);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.lastSessionDate {
+  color: rgb(200, 200, 200);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.lastSessionScore {
+  color: rgb(100, 100, 100);
+  font-size: 12px;
+}
+
+.noData {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  color: rgb(100, 100, 100);
+  text-align: center;
+}
