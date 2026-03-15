@@ -49,7 +49,7 @@ export function ControlsBar({ onEndSession, onToggleSettings, visible = true }: 
         ref={controlsRef}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`flex items-center gap-2 px-6 h-14 rounded-full bg-gray-900/90 backdrop-blur-xl shadow-2xl border border-gray-800 transition-all duration-300 pointer-events-auto mb-6 ${
+        className={`flex items-center gap-2 px-6 h-14 rounded-full bg-gray-900/90 backdrop-blur-lg shadow-2xl border border-gray-800 transition-all duration-300 pointer-events-auto mb-6 ${
           isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >

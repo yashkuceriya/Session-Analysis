@@ -405,4 +405,8 @@ export class PeerConnectionV2 {
   getLastStats(): Partial<ConnectionStats> {
     return this.lastStats;
   }
+
+  getPeerConnection(): RTCPeerConnection | null {
+    return this.pc;
+  }
 }

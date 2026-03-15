@@ -4,14 +4,15 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { FaceMeshProcessor } from '@/lib/video-processor/FaceMeshProcessor';
 import { FaceFrame } from '@/lib/video-processor/types';
 
-const DEFAULT_INTERVAL_MS = 500; // 2 Hz default
-const FAST_INTERVAL_MS = 200;    // 5 Hz when attention declining
+const DEFAULT_INTERVAL_MS = 250; // 4 Hz default
+const FAST_INTERVAL_MS = 150;    // 6-7 Hz when attention declining
 const SLOW_INTERVAL_MS = 1000;   // 1 Hz when no face detected
 
 export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, enabled: boolean) {
   const processorRef = useRef<FaceMeshProcessor | null>(null);
   const frameRef = useRef<FaceFrame | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const rafRef = useRef<number>(0);
+  const lastProcessTimeRef = useRef<number>(0);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
   const lastProcessDurationRef = useRef<number>(0);
@@ -51,7 +52,13 @@ export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, 
   useEffect(() => {
     if (!enabled || !isModelLoaded) return;
 
-    const processLoop = () => {
+    const processLoop = (timestamp: number) => {
+      rafRef.current = requestAnimationFrame(processLoop);
+
+      // Throttle based on current interval
+      if (timestamp - lastProcessTimeRef.current < currentIntervalRef.current) return;
+      lastProcessTimeRef.current = timestamp;
+
       const video = videoRef.current;
       const processor = processorRef.current;
 
@@ -67,7 +74,10 @@ export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, 
           frameRef.current = result;
           consecutiveNullFrames.current = 0;
 
-          // Adaptive: if processing is fast and we're at default, stay there
+          // Adaptive: if processing is fast (<50ms) and face detected, speed up
+          if (duration < 50 && currentIntervalRef.current === DEFAULT_INTERVAL_MS) {
+            currentIntervalRef.current = FAST_INTERVAL_MS;
+          }
           // If we were in slow mode and got a face, go back to default
           if (currentIntervalRef.current === SLOW_INTERVAL_MS) {
             currentIntervalRef.current = DEFAULT_INTERVAL_MS;
@@ -81,8 +91,8 @@ export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, 
           }
         }
 
-        // If processing took too long (>80% of interval), we're overloaded
-        if (duration > currentIntervalRef.current * 0.8) {
+        // If processing took too long (>200ms), slow down
+        if (duration > 200) {
           droppedFramesRef.current++;
           // Slow down if not already at slowest
           if (currentIntervalRef.current < SLOW_INTERVAL_MS) {
@@ -90,16 +100,14 @@ export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, 
           }
         }
       }
-
-      timerRef.current = window.setTimeout(processLoop, currentIntervalRef.current);
     };
 
-    processLoop();
+    rafRef.current = requestAnimationFrame(processLoop);
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
       }
     };
   }, [enabled, isModelLoaded, videoRef]);

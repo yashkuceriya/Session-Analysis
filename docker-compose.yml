@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - AUTH_SECRET=${AUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - ROOM_TOKEN_SECRET=${ROOM_TOKEN_SECRET:-}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - DEV_SKIP_AUTH=${DEV_SKIP_AUTH:-false}
+    volumes:
+      - session-data:/app/.data
+    restart: unless-stopped
+
+  signaling:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - WS_PORT=8081
+    restart: unless-stopped
+
+volumes:
+  session-data:

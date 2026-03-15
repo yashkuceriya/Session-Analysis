@@ -45,7 +45,7 @@ export function VideoLayout({
 
   if (viewMode === 'gallery') {
     return (
-      <div className="grid grid-cols-2 gap-2 p-2 w-full h-full" style={{ minHeight: 0 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 w-full h-full" style={{ minHeight: 0 }}>
         {/* Tutor tile */}
         <VideoTile
           ref={tutorVideoRef}

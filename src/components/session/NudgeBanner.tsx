@@ -74,7 +74,7 @@ export function NudgeBanner({ nudges, onDismiss }: NudgeBannerProps) {
       }`}
     >
       <div
-        className={`${getPriorityColor(topNudge.priority)} border backdrop-blur-md rounded-lg px-4 py-3 shadow-xl max-w-lg flex items-center gap-3`}
+        className={`${getPriorityColor(topNudge.priority)} border backdrop-blur-lg rounded-lg px-4 py-3 shadow-xl max-w-lg flex items-center gap-3`}
       >
         {/* Icon */}
         <span className="text-xl flex-shrink-0">{topNudge.icon}</span>

@@ -8,7 +8,7 @@ import { VADResult } from '@/lib/audio-processor/types';
 import { useSessionStore } from '@/stores/sessionStore';
 import { SessionType } from '@/lib/metrics-engine/types';
 
-const UPDATE_INTERVAL_MS = 500; // 2 Hz
+const UPDATE_INTERVAL_MS = 250; // 4 Hz
 
 interface UseMetricsEngineOptions {
   getTutorFace: () => FaceFrame | null;
@@ -68,12 +68,17 @@ export function useMetricsEngine(options: UseMetricsEngineOptions) {
 
       const audioMs = performance.now() - tickStart;
 
+      // Discard stale face frames (>600ms old) to keep audio/video aligned
+      const now = Date.now();
+      const MAX_FACE_AGE_MS = 600;
+      const validTutorFace = tutorFace && (now - tutorFace.timestamp) < MAX_FACE_AGE_MS ? tutorFace : null;
+      const validStudentFace = studentFace && (now - studentFace.timestamp) < MAX_FACE_AGE_MS ? studentFace : null;
+
       // Metrics computation
       const metricsStart = performance.now();
-      const now = Date.now();
       const snapshot = metricsEngineRef.current!.update(
-        tutorFace,
-        studentFace,
+        validTutorFace,
+        validStudentFace,
         tutorAudio.isSpeaking,
         studentAudio.isSpeaking,
         tutorAudio.energy,

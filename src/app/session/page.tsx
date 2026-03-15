@@ -148,10 +148,13 @@ function SessionPageInner() {
   // Sync adaptive quality to connection quality display (when in room mode)
   useEffect(() => {
     if (!isRoomMode) return;
-    if (streamQuality === 'high') setConnectionQuality('excellent');
-    else if (streamQuality === 'medium') setConnectionQuality('good');
-    else if (streamQuality === 'low') setConnectionQuality('poor');
-    else setConnectionQuality('poor'); // audio-only handled same as poor
+    const update = () => {
+      if (streamQuality === 'high') setConnectionQuality('excellent');
+      else if (streamQuality === 'medium') setConnectionQuality('good');
+      else setConnectionQuality('poor');
+    };
+    const raf = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(raf);
   }, [streamQuality, isRoomMode]);
 
   // Face mesh on BOTH video elements (local + remote/demo)

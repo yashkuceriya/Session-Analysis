@@ -43,7 +43,7 @@ export function MetricsSidebar() {
   };
 
   return (
-    <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col overflow-y-auto">
+    <div className="w-72 bg-gray-900/90 border-l border-gray-800 flex flex-col overflow-y-auto">
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         <h2 className="text-white font-semibold text-sm">Live Metrics</h2>
         <LatencyIndicator />
