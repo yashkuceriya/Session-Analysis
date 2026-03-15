@@ -6,6 +6,7 @@ export function useRecording() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const durationIntervalRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -21,6 +22,7 @@ export function useRecording() {
     try {
       // Create audio context for mixing multiple streams
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const audioDestination = audioContext.createMediaStreamDestination();
 
       // Collect all video and audio tracks
@@ -121,6 +123,11 @@ export function useRecording() {
           durationIntervalRef.current = null;
         }
 
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => {});
+          audioContextRef.current = null;
+        }
+
         resolve(blob);
       };
 
@@ -171,6 +178,9 @@ export function useRecording() {
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
       }
     };
   }, []);

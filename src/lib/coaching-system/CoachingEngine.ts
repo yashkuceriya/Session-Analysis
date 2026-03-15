@@ -52,8 +52,8 @@ export class CoachingEngine {
           triggered.push(nudge);
           this.cooldownManager.recordTrigger(rule.id, now);
         }
-      } catch {
-        // Rule evaluation failed, skip
+      } catch (err) {
+        console.error('[CoachingEngine] Rule evaluation failed:', err);
       }
     }
 

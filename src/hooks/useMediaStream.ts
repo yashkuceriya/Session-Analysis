@@ -25,7 +25,20 @@ export function useMediaStream(options: UseMediaStreamOptions = { video: true, a
       setError(null);
       return newStream;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to access camera/microphone';
+      let message = 'Failed to access camera/microphone';
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          message = 'Camera/microphone access was denied. Please allow permissions and try again.';
+        } else if (err.name === 'NotFoundError') {
+          message = 'No camera or microphone found on this device.';
+        } else if (err.name === 'NotReadableError') {
+          message = 'Camera or microphone is already in use by another application.';
+        } else {
+          message = err.message;
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
       setError(message);
       setIsReady(false);
       return null;

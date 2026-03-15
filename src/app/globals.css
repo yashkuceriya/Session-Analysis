@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  /* Force light color scheme — our app is light-themed only (except session-dark) */
+  color-scheme: light;
   /* Warm light theme — inspired by reference designs */
   --background: #faf9f7;
   --foreground: #1a1a1a;
@@ -66,6 +68,20 @@ body {
 
 .score-ring {
   filter: drop-shadow(0 0 8px rgba(232, 93, 38, 0.3));
+}
+
+/* Prevent Tailwind CSS 4 automatic dark mode from overriding our theme */
+@media (prefers-color-scheme: dark) {
+  :root:not(.session-dark) {
+    color-scheme: light;
+    --background: #faf9f7;
+    --foreground: #1a1a1a;
+    --card: #ffffff;
+    --card-border: #e8e5e0;
+    --card-hover: #f5f3f0;
+    --muted: #8c8579;
+    --muted-light: #b5afa6;
+  }
 }
 
 /* Video session page stays dark (video looks better on dark) */

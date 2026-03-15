@@ -42,7 +42,7 @@ export class SessionErrorBoundary extends Component<Props, State> {
       const { errorType, error } = this.state;
 
       return (
-        <div className="h-screen bg-gray-950 flex items-center justify-center">
+        <div className="h-screen bg-gray-950 flex items-center justify-center session-dark">
           <div className="text-center max-w-lg p-8">
             <div className="text-5xl mb-4">
               {errorType === 'mediapipe' ? '🧠' : errorType === 'audio' ? '🎤' : '⚠️'}

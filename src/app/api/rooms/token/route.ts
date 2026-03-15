@@ -39,10 +39,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate room token
+    const userRole = typeof session?.user === 'object' && session.user !== null && 'role' in session.user
+      ? (session.user as { role?: string }).role
+      : undefined;
+    const role = (userRole === 'tutor' || userRole === 'student') ? userRole : 'student';
+
     const token = await generateRoomToken(
       body.roomId,
       session.user.id,
-      (session.user as any).role || 'student'
+      role
     );
 
     const expiresAt = getRoomTokenExpiration();

@@ -97,11 +97,11 @@ export default function SignupPage() {
   const isPasswordStrong = passwordStrength.minLength && passwordStrength.hasUppercase && passwordStrength.hasNumber;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+    <div className="min-h-screen text-[var(--foreground)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-          <p className="text-gray-400">Join us to start analyzing tutoring sessions</p>
+          <p className="text-[var(--muted)]">Join us to start analyzing tutoring sessions</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
@@ -122,7 +122,7 @@ export default function SignupPage() {
               placeholder="John Doe"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
@@ -139,7 +139,7 @@ export default function SignupPage() {
               placeholder="you@example.com"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
@@ -156,22 +156,22 @@ export default function SignupPage() {
               placeholder="••••••••"
               value={formData.password}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
             {formData.password && (
               <div className="mt-2 space-y-1 text-sm">
-                <div className={`flex items-center gap-2 ${passwordStrength.minLength ? 'text-green-400' : 'text-gray-500'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.minLength ? 'bg-green-400' : 'bg-gray-600'}`} />
+                <div className={`flex items-center gap-2 ${passwordStrength.minLength ? 'text-green-400' : 'text-[var(--muted)]'}`}>
+                  <span className={`w-2 h-2 rounded-full ${passwordStrength.minLength ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
                   Min 8 characters
                 </div>
-                <div className={`flex items-center gap-2 ${passwordStrength.hasUppercase ? 'text-green-400' : 'text-gray-500'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasUppercase ? 'bg-green-400' : 'bg-gray-600'}`} />
+                <div className={`flex items-center gap-2 ${passwordStrength.hasUppercase ? 'text-green-400' : 'text-[var(--muted)]'}`}>
+                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasUppercase ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
                   One uppercase letter
                 </div>
-                <div className={`flex items-center gap-2 ${passwordStrength.hasNumber ? 'text-green-400' : 'text-gray-500'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasNumber ? 'bg-green-400' : 'bg-gray-600'}`} />
+                <div className={`flex items-center gap-2 ${passwordStrength.hasNumber ? 'text-green-400' : 'text-[var(--muted)]'}`}>
+                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasNumber ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
                   One number
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function SignupPage() {
               placeholder="••••••••"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
@@ -211,8 +211,8 @@ export default function SignupPage() {
                 <div
                   className={`p-3 text-center rounded-lg border transition-all ${
                     formData.role === 'tutor'
-                      ? 'bg-blue-600 border-blue-500'
-                      : 'bg-gray-900 border-gray-800 hover:border-gray-700'
+                      ? 'bg-[var(--accent)] border-[var(--accent)]'
+                      : 'card border-[var(--card-border)] hover:border-[var(--card-border)]'
                   }`}
                 >
                   Tutor
@@ -231,8 +231,8 @@ export default function SignupPage() {
                 <div
                   className={`p-3 text-center rounded-lg border transition-all ${
                     formData.role === 'student'
-                      ? 'bg-blue-600 border-blue-500'
-                      : 'bg-gray-900 border-gray-800 hover:border-gray-700'
+                      ? 'bg-[var(--accent)] border-[var(--accent)]'
+                      : 'card border-[var(--card-border)] hover:border-[var(--card-border)]'
                   }`}
                 >
                   Student
@@ -244,15 +244,15 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={isLoading || !isPasswordStrong || formData.password !== formData.confirmPassword}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+            className="w-full py-2 px-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
           >
             {isLoading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center text-gray-400">
+        <p className="text-center text-[var(--muted)]">
           Already have an account?{' '}
-          <Link href="/auth/login" className="text-blue-500 hover:text-blue-400 font-medium">
+          <Link href="/auth/login" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
             Sign in
           </Link>
         </p>

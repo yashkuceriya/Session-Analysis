@@ -105,6 +105,8 @@ export function useBackgroundEffect(
     async (imageUrl: string): Promise<void> => {
       if (!processorRef.current) {
         initializeProcessor();
+        // Give processor time to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       if (processorRef.current) {
         await processorRef.current.setBackgroundImage(imageUrl);

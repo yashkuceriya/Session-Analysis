@@ -48,7 +48,9 @@ export function useVideoElementAudio(
       }
 
       sourceRef.current = source;
-      vadRef.current.setup(audioContext, source as unknown as MediaStreamAudioSourceNode);
+      // Both MediaElementAudioSourceNode and MediaStreamAudioSourceNode extend AudioNode
+      // VAD only needs the AudioNode interface for connect()
+      vadRef.current.setup(audioContext, source as any);
       connectedRef.current = true;
 
       const analyze = () => {

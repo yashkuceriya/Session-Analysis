@@ -283,7 +283,8 @@ Respond in this exact JSON format (no markdown wrapping, pure JSON):
 
   try {
     return JSON.parse(text) as AISessionAnalysis;
-  } catch {
+  } catch (parseErr) {
+    console.error('[claude-analyzer] Failed to parse AI response as JSON:', parseErr, 'Raw text:', text.slice(0, 200));
     return {
       sessionGrade: 'C',
       overallScore: 50,

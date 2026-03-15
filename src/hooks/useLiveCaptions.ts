@@ -32,6 +32,7 @@ export function useLiveCaptions() {
 
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
   const interimTranscriptRef = useRef('');
+  const isListeningRef = useRef(false);
 
   useEffect(() => {
     const SpeechRecognitionAPI =
@@ -55,7 +56,7 @@ export function useLiveCaptions() {
       recognition.onend = () => {
         setIsListening(false);
         // Restart to keep it running
-        if (recognitionRef.current && isListening) {
+        if (recognitionRef.current && isListeningRef.current) {
           try {
             recognition.start();
           } catch (e) {
@@ -100,6 +101,7 @@ export function useLiveCaptions() {
       setFinalTranscripts([]);
       setTranscript('');
       interimTranscriptRef.current = '';
+      isListeningRef.current = true;
       try {
         recognitionRef.current.start();
       } catch (e) {
@@ -110,6 +112,7 @@ export function useLiveCaptions() {
 
   const stop = () => {
     if (recognitionRef.current) {
+      isListeningRef.current = false;
       recognitionRef.current.stop();
       setIsListening(false);
     }

@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
 
   // DEV_SKIP_AUTH: Skip all auth checks in development
   // Set this in .env.local to bypass login during local development
-  if (process.env.DEV_SKIP_AUTH === 'true') {
+  if (process.env.DEV_SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
     return NextResponse.next();
   }
 

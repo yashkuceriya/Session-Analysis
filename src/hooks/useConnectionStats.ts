@@ -22,14 +22,25 @@ export function useConnectionStats(peerConnection: PeerConnectionV2 | null): Con
     }
 
     // Poll stats every 2 seconds
-    const interval = setInterval(async () => {
-      const newStats = await peerConnection.getStats();
-      if (newStats) {
-        setStats(newStats);
+    let active = true;
+    const poll = async () => {
+      try {
+        const newStats = await peerConnection.getStats();
+        if (newStats && active) {
+          setStats(newStats);
+        }
+      } catch {
+        // Stats polling failed, will retry next interval
       }
-    }, 2000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(poll, 2000);
+    poll(); // Initial poll
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [peerConnection]);
 
   return stats;

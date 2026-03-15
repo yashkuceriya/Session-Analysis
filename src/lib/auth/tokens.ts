@@ -8,8 +8,15 @@ interface RoomTokenPayload {
   exp?: number;
 }
 
+const secretKey = process.env.ROOM_TOKEN_SECRET;
+if (!secretKey) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ROOM_TOKEN_SECRET must be set in production');
+  }
+  // Dev-only fallback
+}
 const secret = new TextEncoder().encode(
-  process.env.ROOM_TOKEN_SECRET || 'dev-secret-change-me'
+  secretKey || 'dev-secret-only-do-not-use-in-production'
 );
 
 /**

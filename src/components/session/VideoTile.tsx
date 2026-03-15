@@ -140,7 +140,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
           ref={setVideoRef}
           autoPlay
           playsInline
-          muted={isLocal || isMuted}
+          muted
           onLoadedData={() => {
             const el = localVideoRef.current;
             if (el && el.videoWidth > 0) setVideoActive(true);

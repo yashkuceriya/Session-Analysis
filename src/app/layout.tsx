@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ colorScheme: 'light' as const }}>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

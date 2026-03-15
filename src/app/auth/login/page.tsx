@@ -66,11 +66,11 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+    <div className="min-h-screen text-[var(--foreground)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-gray-400">Sign in to your tutoring session account</p>
+          <p className="text-[var(--muted)]">Sign in to your tutoring session account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
@@ -90,7 +90,7 @@ function LoginContent() {
               placeholder="you@example.com"
               value={email}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
@@ -106,7 +106,7 @@ function LoginContent() {
               placeholder="••••••••"
               value={password}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
               required
               disabled={isLoading}
             />
@@ -115,7 +115,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+            className="w-full py-2 px-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -123,10 +123,10 @@ function LoginContent() {
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-800" />
+            <div className="w-full border-t border-[var(--card-border)]" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-950 text-gray-500">Or continue with</span>
+            <span className="px-2 bg-[var(--background)] text-[var(--muted)]">Or continue with</span>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ function LoginContent() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full py-2 px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-800 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2 px-4 card hover:bg-[var(--card-hover)] disabled:opacity-50 disabled:cursor-not-allowed border border-[var(--card-border)] rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -162,7 +162,7 @@ function LoginContent() {
             type="button"
             onClick={handleGitHubSignIn}
             disabled={isLoading}
-            className="w-full py-2 px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-800 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2 px-4 card hover:bg-[var(--card-hover)] disabled:opacity-50 disabled:cursor-not-allowed border border-[var(--card-border)] rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -175,9 +175,9 @@ function LoginContent() {
           </button>
         </div>
 
-        <p className="text-center text-gray-400">
+        <p className="text-center text-[var(--muted)]">
           Don't have an account?{' '}
-          <Link href="/auth/signup" className="text-blue-500 hover:text-blue-400 font-medium">
+          <Link href="/auth/signup" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
             Sign up
           </Link>
         </p>

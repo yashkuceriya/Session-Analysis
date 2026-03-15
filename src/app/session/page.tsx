@@ -64,6 +64,7 @@ function SessionPageInner() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const selfViewRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -181,8 +182,9 @@ function SessionPageInner() {
   }, [isRoomMode, role, localFaceMesh, remoteFaceMesh]);
 
   const getStudentFace = useCallback(() => {
-    if (!isRoomMode || role === 'student') return remoteFaceMesh.getLatestFrame();
-    return localFaceMesh.getLatestFrame();
+    if (!isRoomMode) return remoteFaceMesh.getLatestFrame(); // Solo: student is demo video
+    if (role === 'student') return localFaceMesh.getLatestFrame(); // Student: own camera is student
+    return remoteFaceMesh.getLatestFrame(); // Tutor: student is remote
   }, [isRoomMode, role, localFaceMesh, remoteFaceMesh]);
 
   const getTutorAudio = useCallback(() => {
@@ -251,6 +253,33 @@ function SessionPageInner() {
       selfViewRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  // Keep remote video element in sync with remote stream (handles ref changes from re-renders)
+  useEffect(() => {
+    if (!remoteStream) return;
+    const attachRemote = () => {
+      const el = remoteVideoRef.current;
+      if (el && el.srcObject !== remoteStream) {
+        el.srcObject = remoteStream;
+        el.play().catch(() => {});
+      }
+    };
+    attachRemote();
+    const interval = setInterval(attachRemote, 500);
+    const onPlaying = () => clearInterval(interval);
+    remoteVideoRef.current?.addEventListener('playing', onPlaying);
+    return () => {
+      clearInterval(interval);
+      remoteVideoRef.current?.removeEventListener('playing', onPlaying);
+    };
+  }, [remoteStream]);
+
+  // Play remote audio through a separate (unmuted) audio element for reliable playback
+  useEffect(() => {
+    if (!remoteStream || !remoteAudioRef.current) return;
+    remoteAudioRef.current.srcObject = remoteStream;
+    remoteAudioRef.current.play().catch(() => {});
+  }, [remoteStream]);
 
   // Start local media + session on mount
   useEffect(() => {
@@ -335,6 +364,13 @@ function SessionPageInner() {
         if (msg.type === 'chat' && typeof msg.data === 'object' && msg.data !== null) {
           // Could dispatch to chat — for now just log
         }
+        // Timer sync: student receives tutor's startTime
+        if (msg.type === 'sync' && typeof msg.data === 'object' && msg.data !== null) {
+          const syncData = msg.data as { startTime: number };
+          if (syncData.startTime && role === 'student') {
+            useSessionStore.setState({ startTime: syncData.startTime });
+          }
+        }
         if (msg.type === 'reaction' && typeof msg.data === 'string') {
           const ALLOWED_EMOJI = new Set(['👍','👎','❤️','😂','🎉','🤔','👏','🔥','💯','✋']);
           const emoji = msg.data as string;
@@ -359,6 +395,23 @@ function SessionPageInner() {
       setRtcPeerConnection(null);
     };
   }, [isRoomMode, roomId, role, localStream, streamReady]);
+
+  // Timer sync: tutor sends startTime to student when peer connects
+  useEffect(() => {
+    if (!peerConnected || !peerRef.current || role !== 'tutor') return;
+    const sendSync = () => {
+      const state = useSessionStore.getState();
+      peerRef.current?.sendData({
+        type: 'sync',
+        data: { startTime: state.startTime },
+        timestamp: Date.now(),
+      });
+    };
+    // Try immediately + retry once after DataChannel might have opened
+    sendSync();
+    const timeout = setTimeout(sendSync, 1500);
+    return () => clearTimeout(timeout);
+  }, [peerConnected, role]);
 
   // Solo/demo mode: load student demo video
   useEffect(() => {
@@ -538,11 +591,19 @@ function SessionPageInner() {
     }
   };
 
-  // Display names
-  const localLabel = isRoomMode ? (role === 'tutor' ? 'You (Tutor)' : 'You (Student)') : sessionConfig.tutorName;
-  const remoteLabel = isRoomMode
-    ? (role === 'tutor' ? sessionConfig.studentName : sessionConfig.tutorName)
+  // Display names — tutor tile always says tutor name, student tile always says student name
+  const tutorLabel = isRoomMode
+    ? (role === 'tutor' ? `${sessionConfig.tutorName} (You)` : sessionConfig.tutorName)
+    : sessionConfig.tutorName;
+  const studentLabel = isRoomMode
+    ? (role === 'student' ? `${sessionConfig.studentName} (You)` : sessionConfig.studentName)
     : sessionConfig.studentName;
+  // For FloatingSelfView and backward compat
+  const localLabel = isRoomMode ? (role === 'tutor' ? 'You (Tutor)' : 'You (Student)') : sessionConfig.tutorName;
+
+  // Role-aware video ref mapping: each role sees their own camera on their own tile
+  const tutorVideoRef = role === 'tutor' ? localVideoRef : remoteVideoRef;
+  const studentVideoRef = role === 'student' ? localVideoRef : remoteVideoRef;
 
   // Combined metrics history for timeline
   const fullHistory = useMemo(() => [...metricsArchive, ...metricsHistory], [metricsArchive, metricsHistory]);
@@ -638,11 +699,11 @@ function SessionPageInner() {
           {isAnalysisVisible ? (
             <EngagementRing engagementScore={currentMetrics?.engagementScore ?? 50}>
               <VideoLayout
-                tutorVideoRef={viewMode === 'speaker' && activeSpeaker === 'student' ? remoteVideoRef : localVideoRef}
-                studentVideoRef={viewMode === 'speaker' && activeSpeaker === 'student' ? localVideoRef : remoteVideoRef}
+                tutorVideoRef={tutorVideoRef}
+                studentVideoRef={studentVideoRef}
                 localVideoRef={localVideoRef}
-                tutorLabel={viewMode === 'speaker' && activeSpeaker === 'student' ? remoteLabel : localLabel}
-                studentLabel={viewMode === 'speaker' && activeSpeaker === 'student' ? localLabel : remoteLabel}
+                tutorLabel={tutorLabel}
+                studentLabel={studentLabel}
                 viewMode={viewMode}
                 activeSpeaker={activeSpeaker}
                 showOverlays={true}
@@ -651,11 +712,11 @@ function SessionPageInner() {
             </EngagementRing>
           ) : (
             <VideoLayout
-              tutorVideoRef={viewMode === 'speaker' && activeSpeaker === 'student' ? remoteVideoRef : localVideoRef}
-              studentVideoRef={viewMode === 'speaker' && activeSpeaker === 'student' ? localVideoRef : remoteVideoRef}
+              tutorVideoRef={tutorVideoRef}
+              studentVideoRef={studentVideoRef}
               localVideoRef={localVideoRef}
-              tutorLabel={viewMode === 'speaker' && activeSpeaker === 'student' ? remoteLabel : localLabel}
-              studentLabel={viewMode === 'speaker' && activeSpeaker === 'student' ? localLabel : remoteLabel}
+              tutorLabel={tutorLabel}
+              studentLabel={studentLabel}
               viewMode={viewMode}
               activeSpeaker={activeSpeaker}
               showOverlays={false}
@@ -699,7 +760,7 @@ function SessionPageInner() {
         {/* Floating self-view in speaker mode */}
         {viewMode === 'speaker' && (
           <FloatingSelfView
-            videoRef={localVideoRef}
+            videoRef={selfViewRef}
             name={localLabel || 'You'}
             isMuted={!isMicEnabled}
             eyeContactScore={role === 'tutor' ? currentMetrics?.tutor.eyeContactScore : currentMetrics?.student.eyeContactScore}
@@ -750,6 +811,9 @@ function SessionPageInner() {
 
       {/* Keyboard shortcuts help modal */}
       <KeyboardShortcutsHelp isOpen={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
+
+      {/* Hidden audio element — plays remote participant audio (video elements are muted for autoplay) */}
+      <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
     </div>
   );
 }

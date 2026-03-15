@@ -51,7 +51,7 @@ export function StateBadge({ state, silenceDurationMs, talkTimePercent }: StateB
         onMouseLeave={() => setShowTooltip(false)}
       >
         <span className="text-lg">{config.emoji}</span>
-        <span className="text-xs white font-medium text-white">{config.label}</span>
+        <span className="text-xs font-medium text-white">{config.label}</span>
       </div>
 
       {/* Tooltip */}

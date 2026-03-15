@@ -80,7 +80,13 @@ export class MetricsEngine {
     const studentEyeContact = this.studentEyeContactWindow.ratio(v => v);
 
     this.tutorEyeContactHistory.push(tutorEyeContact);
+    if (this.tutorEyeContactHistory.length > 600) {
+      this.tutorEyeContactHistory = this.tutorEyeContactHistory.slice(-300);
+    }
     this.studentEyeContactHistory.push(studentEyeContact);
+    if (this.studentEyeContactHistory.length > 600) {
+      this.studentEyeContactHistory = this.studentEyeContactHistory.slice(-300);
+    }
 
     // Audio analysis
     this.speakingTracker.update(tutorSpeaking, studentSpeaking, timestamp);
@@ -145,6 +151,9 @@ export class MetricsEngine {
     const engagementRaw = this.computeEngagement(tutor, student, elapsedMs);
     const engagementSmoothed = this.engagementEMA.update(engagementRaw);
     this.engagementHistory.push(engagementSmoothed);
+    if (this.engagementHistory.length > 600) {
+      this.engagementHistory = this.engagementHistory.slice(-300);
+    }
 
     // Update baseline (first 2 minutes)
     if (elapsedMs < 120000) {

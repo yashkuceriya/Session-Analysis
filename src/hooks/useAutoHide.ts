@@ -58,9 +58,10 @@ export function useAutoHide(): UseAutoHideResult {
   }, [scheduleHide]);
 
   useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove as EventListener, { passive: true });
+    const handler = (e: MouseEvent) => onMouseMove(e);
+    window.addEventListener('mousemove', handler, { passive: true });
     return () => {
-      window.removeEventListener('mousemove', onMouseMove as EventListener);
+      window.removeEventListener('mousemove', handler);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }

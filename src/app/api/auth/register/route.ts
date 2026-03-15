@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { hasUser, addUser } from '@/lib/auth/user-store.server';
 import { rateLimit } from '@/lib/auth/rate-limit';
 
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(body.password, salt);
 
     // Create user
-    const userId = Math.random().toString(36).substr(2, 9);
+    const userId = randomUUID();
     addUser({
       id: userId,
       email: body.email.toLowerCase(),
