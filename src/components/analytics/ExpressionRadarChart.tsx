@@ -97,21 +97,21 @@ export function ExpressionRadarChart({ metricsHistory }: ExpressionRadarChartPro
   ];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Expression Profile</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Expression Profile</h3>
       <ResponsiveContainer width="100%" height={320}>
         <RadarChart data={data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <PolarGrid stroke="#475569" />
+          <PolarGrid stroke="var(--card-border)" />
           <PolarAngleAxis
             dataKey="name"
-            stroke="#64748b"
+            stroke="var(--muted)"
             fontSize={12}
             tick={(props: any) => <CustomAngleTick {...props} />}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 100]}
-            stroke="#64748b"
+            stroke="var(--muted)"
             fontSize={11}
           />
           <Radar
@@ -150,7 +150,7 @@ function CustomAngleTick({ x, y, payload }: any) {
       y={y}
       textAnchor="middle"
       dominantBaseline="middle"
-      className="fill-gray-300"
+      className="fill-[var(--foreground)]"
       fontSize={12}
     >
       {payload.value}

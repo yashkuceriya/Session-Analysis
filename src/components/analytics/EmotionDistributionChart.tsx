@@ -88,9 +88,9 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
 
     const data = payload[0].payload;
     return (
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs shadow-xl">
-        <p className="text-gray-300 font-medium">{data.name}</p>
-        <p className="text-gray-400">
+      <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-2 text-xs shadow-xl">
+        <p className="text-[var(--foreground)] font-medium">{data.name}</p>
+        <p className="text-[var(--muted)]">
           {data.value} snapshots ({data.percentage}%)
         </p>
       </div>
@@ -105,7 +105,7 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
         y={cy - 8}
         textAnchor="middle"
         dominantBaseline="middle"
-        className="fill-gray-300 font-medium"
+        className="fill-[var(--foreground)] font-medium"
         fontSize={14}
       >
         {dominantState.name}
@@ -121,7 +121,7 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
         y={cy + 8}
         textAnchor="middle"
         dominantBaseline="middle"
-        className="fill-gray-400"
+        className="fill-[var(--muted)]"
         fontSize={12}
       >
         {dominantState.percentage}%
@@ -130,8 +130,8 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Student State Distribution</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Student State Distribution</h3>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
@@ -191,7 +191,7 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: STATE_COLORS[stateKey] }}
               />
-              <span className="text-gray-300">
+              <span className="text-[var(--foreground)]">
                 {item.name}: <span className="font-medium">{item.percentage}%</span>
               </span>
             </div>
@@ -201,7 +201,7 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
 
       {/* Natural Language Summary */}
       {dominantState && (
-        <p className="mt-4 text-xs text-gray-400 leading-relaxed italic">{summary}</p>
+        <p className="mt-4 text-xs text-[var(--muted-light)] leading-relaxed italic">{summary}</p>
       )}
     </div>
   );

@@ -57,37 +57,37 @@ export function NudgeEffectivenessChart({ metricsHistory, nudgeHistory, startTim
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="card p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-300">Coaching Effectiveness</h3>
-        <span className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">
+        <h3 className="text-sm font-medium text-[var(--foreground)]">Coaching Effectiveness</h3>
+        <span className="text-xs bg-[var(--card-hover)] px-2 py-1 rounded text-[var(--muted)]">
           {effectivenessRate}% effective
         </span>
       </div>
       <div className="space-y-2">
         {impacts.map((impact, i) => (
           <div key={i} className="flex items-center gap-3 text-xs">
-            <span className="text-gray-600 font-mono w-10 flex-shrink-0">
+            <span className="text-[var(--muted-light)] font-mono w-10 flex-shrink-0">
               {formatTime(impact.timeSinceStart)}
             </span>
             <span className="flex-shrink-0">{impact.nudge.icon}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-gray-400 truncate">{impact.nudge.ruleId}</span>
-                <span className={`font-mono flex-shrink-0 ${impact.delta > 0 ? 'text-green-400' : impact.delta < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                <span className="text-[var(--muted)] truncate">{impact.nudge.ruleId}</span>
+                <span className={`font-mono flex-shrink-0 ${impact.delta > 0 ? 'text-green-400' : impact.delta < 0 ? 'text-red-400' : 'text-[var(--muted-light)]'}`}>
                   {impact.delta > 0 ? '+' : ''}{impact.delta}
                 </span>
               </div>
               {/* Mini bar showing before/after */}
               <div className="flex items-center gap-1 mt-1">
-                <div className="h-1.5 bg-gray-700 rounded-full flex-1 overflow-hidden">
+                <div className="h-1.5 bg-[var(--card-hover)] rounded-full flex-1 overflow-hidden">
                   <div
-                    className="h-full bg-gray-500 rounded-full"
+                    className="h-full bg-[var(--muted-light)] rounded-full"
                     style={{ width: `${impact.engagementBefore}%` }}
                   />
                 </div>
-                <span className="text-gray-600">→</span>
-                <div className="h-1.5 bg-gray-700 rounded-full flex-1 overflow-hidden">
+                <span className="text-[var(--muted-light)]">→</span>
+                <div className="h-1.5 bg-[var(--card-hover)] rounded-full flex-1 overflow-hidden">
                   <div
                     className={`h-full rounded-full ${impact.effective ? 'bg-green-500' : 'bg-red-500'}`}
                     style={{ width: `${impact.engagementAfter}%` }}

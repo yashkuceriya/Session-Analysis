@@ -28,8 +28,8 @@ export function SessionHistory() {
   if (sessions.length === 0) return null;
 
   return (
-    <div className="mt-6 bg-gray-900/50 rounded-xl border border-gray-800/50 p-4">
-      <h3 className="text-sm font-medium text-gray-300 mb-3">Past Sessions</h3>
+    <div className="mt-6 card bg-opacity-50 p-4">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-3">Past Sessions</h3>
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {sessions.map((session) => {
           const duration = session.endTime
@@ -46,13 +46,13 @@ export function SessionHistory() {
             <button
               key={session.id}
               onClick={() => router.push(`/analytics/${session.id}`)}
-              className="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors group"
+              className="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--card-hover)] hover:bg-[var(--card-border)] transition-colors group"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white truncate">
+                <p className="text-sm text-[var(--foreground)] truncate">
                   {session.config.subject || 'Session'} — {session.config.sessionType}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[var(--muted-light)]">
                   {new Date(session.startTime).toLocaleDateString()} — {duration} min — Engagement: {avgEngagement}
                 </p>
               </div>
@@ -64,7 +64,7 @@ export function SessionHistory() {
                 </span>
                 <button
                   onClick={(e) => handleDelete(session.id, e)}
-                  className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-[var(--muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

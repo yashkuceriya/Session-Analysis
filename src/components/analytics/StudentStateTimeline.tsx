@@ -55,8 +55,8 @@ export function StudentStateTimeline({ metricsHistory, startTime }: StudentState
   const total = segments.length;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-3">Student State Timeline</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-3">Student State Timeline</h3>
 
       {/* Timeline bar */}
       <div className="flex h-6 rounded-lg overflow-hidden mb-3">
@@ -71,7 +71,7 @@ export function StudentStateTimeline({ metricsHistory, startTime }: StudentState
       </div>
 
       {/* Time markers */}
-      <div className="flex justify-between text-[10px] text-gray-600 mb-4">
+      <div className="flex justify-between text-[10px] text-[var(--muted-light)] mb-4">
         <span>0:00</span>
         <span>{Math.round(totalMs / 60000)}:00</span>
       </div>
@@ -84,8 +84,8 @@ export function StudentStateTimeline({ metricsHistory, startTime }: StudentState
           return (
             <div key={state} className="text-center">
               <div className={`w-3 h-3 rounded-full ${STATE_COLORS[state]} mx-auto mb-1 opacity-80`} />
-              <p className="text-[10px] text-gray-400">{STATE_LABELS[state]}</p>
-              <p className="text-xs text-white font-mono">{pct}%</p>
+              <p className="text-[10px] text-[var(--muted)]">{STATE_LABELS[state]}</p>
+              <p className="text-xs text-[var(--foreground)] font-mono">{pct}%</p>
             </div>
           );
         })}

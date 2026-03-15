@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useRef, useState, useEffect } from 'react';
+import { forwardRef, useCallback, useRef, useState, useEffect, memo } from 'react';
 import { StudentState } from '@/lib/metrics-engine/types';
 
 interface VideoTileProps {
@@ -17,7 +17,7 @@ interface VideoTileProps {
   className?: string;
 }
 
-export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
+export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
   function VideoTile(
     {
       name,
@@ -50,22 +50,46 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
       [forwardedRef]
     );
 
-    // Continuously check if video element has a real source and is rendering frames
-    // This runs forever (not just once) because srcObject can be set at any time
-    // by the parent component's useEffect
+    // Detect video active state using events + slow fallback poll
     useEffect(() => {
-      const check = () => {
-        const el = localVideoRef.current;
-        if (!el) return;
-        // srcObject present means stream is attached
-        // readyState >= 2 means enough data to play
-        // videoWidth > 0 means actual frames are being decoded
-        const active = !!(el.srcObject && (el.readyState >= 1 || el.videoWidth > 0));
-        setVideoActive(active);
+      const el = localVideoRef.current;
+      if (!el) return;
+
+      const markActive = () => {
+        // Only mark active when video actually has pixel dimensions
+        if (el.videoWidth > 0 && el.videoHeight > 0) {
+          setVideoActive(true);
+        }
       };
-      // Poll aggressively until video is active, then slow down
-      const interval = setInterval(check, 50);
-      return () => clearInterval(interval);
+      const markInactive = () => setVideoActive(false);
+
+      // Event-driven detection (much cheaper than 50ms polling)
+      el.addEventListener('playing', markActive);
+      el.addEventListener('loadeddata', markActive);
+      el.addEventListener('resize', markActive);
+      el.addEventListener('emptied', markInactive);
+
+      // Slow fallback poll (1s) for edge cases where events don't fire
+      const fallback = setInterval(() => {
+        if (el.srcObject && el.videoWidth > 0 && el.videoHeight > 0 && !el.paused) {
+          setVideoActive(true);
+        } else if (!el.srcObject && !el.src) {
+          setVideoActive(false);
+        }
+      }, 1000);
+
+      // Check immediately
+      if (el.srcObject && el.videoWidth > 0 && el.videoHeight > 0) {
+        setVideoActive(true);
+      }
+
+      return () => {
+        el.removeEventListener('playing', markActive);
+        el.removeEventListener('loadeddata', markActive);
+        el.removeEventListener('resize', markActive);
+        el.removeEventListener('emptied', markInactive);
+        clearInterval(fallback);
+      };
     }, []);
 
     // Engagement color — used for a subtle bottom accent line
@@ -106,7 +130,7 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
 
     return (
       <div
-        className={`relative overflow-hidden bg-gray-900 transition-all duration-300 ${
+        className={`relative overflow-hidden bg-gray-900 transition-shadow duration-300 ${
           isActiveSpeaker ? 'ring-2 ring-blue-500/50' : ''
         } ${className}`}
         style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px', minHeight: '200px' }}
@@ -117,9 +141,15 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
           autoPlay
           playsInline
           muted={isLocal || isMuted}
-          onLoadedData={() => setVideoActive(true)}
-          onPlaying={() => setVideoActive(true)}
-          className="absolute inset-0 w-full h-full object-cover z-10"
+          onLoadedData={() => {
+            const el = localVideoRef.current;
+            if (el && el.videoWidth > 0) setVideoActive(true);
+          }}
+          onPlaying={() => {
+            const el = localVideoRef.current;
+            if (el && el.videoWidth > 0) setVideoActive(true);
+          }}
+          className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 ${videoActive ? 'opacity-100' : 'opacity-0'}`}
         />
 
         {/* Placeholder — z-0, fades out when video is active */}
@@ -237,4 +267,4 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
       </div>
     );
   }
-);
+));

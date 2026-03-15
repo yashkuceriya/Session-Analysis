@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
           <p className="text-[var(--muted)] mb-4">No session data available for {sessionIdParam}</p>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-[var(--foreground)] rounded-lg"
+            className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
           >
             Start New Session
           </button>
@@ -274,9 +274,9 @@ export default function AnalyticsPage() {
             {/* Data provenance badge */}
             <div className="flex items-center gap-3 mt-3">
               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                dataSource === 'server' ? 'bg-green-900/50 text-green-300' :
-                dataSource === 'memory' ? 'bg-blue-900/50 text-blue-300' :
-                dataSource === 'local' ? 'bg-yellow-900/50 text-yellow-300' :
+                dataSource === 'server' ? 'bg-[var(--success-light)] text-[var(--success)]' :
+                dataSource === 'memory' ? 'bg-[var(--info-light)] text-[var(--info)]' :
+                dataSource === 'local' ? 'bg-[var(--warning-light)] text-[var(--warning)]' :
                 'bg-[var(--card-hover)] text-[var(--muted)]'
               }`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -292,7 +292,7 @@ export default function AnalyticsPage() {
           </div>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-[var(--foreground)] rounded-lg text-sm font-medium"
+            className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm font-medium"
           >
             New Session
           </button>
@@ -312,7 +312,7 @@ export default function AnalyticsPage() {
 
         {/* QUICK STATS */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
             Quick Stats
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -374,7 +374,7 @@ export default function AnalyticsPage() {
         {/* ENGAGEMENT OVER TIME */}
         {startTime && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Engagement Over Time
             </h2>
             <div className="card p-5">
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
         {/* FACIAL EXPRESSION ANALYSIS */}
         {metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Facial Expression Analysis
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
@@ -399,7 +399,7 @@ export default function AnalyticsPage() {
         {/* EXPRESSION TIMELINE */}
         {startTime && metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Expression Timeline
             </h2>
             <div className="card p-5">
@@ -411,7 +411,7 @@ export default function AnalyticsPage() {
         {/* DETAILED EXPRESSION BREAKDOWN */}
         {metricsHistory.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Detailed Expression Breakdown
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
@@ -432,7 +432,7 @@ export default function AnalyticsPage() {
         {/* STUDENT STATE TIMELINE */}
         {startTime && metricsHistory.length > 10 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Student State Timeline
             </h2>
             <div className="card p-5">
@@ -443,7 +443,7 @@ export default function AnalyticsPage() {
 
         {/* COMMUNICATION & INTERACTION */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
             Communication &amp; Interaction
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
@@ -491,7 +491,7 @@ export default function AnalyticsPage() {
         {/* ENGAGEMENT HEATMAP */}
         {startTime && metricsHistory.length > 10 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Engagement Heatmap
             </h2>
             <div className="card p-5">
@@ -503,7 +503,7 @@ export default function AnalyticsPage() {
         {/* COACHING & NUDGES */}
         {(startTime && nudgeHistory.length > 0) || summary.keyMoments.length > 0 ? (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Coaching &amp; Nudges
             </h2>
 
@@ -524,7 +524,7 @@ export default function AnalyticsPage() {
                 <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Nudge History</h3>
                 <div className="space-y-3">
                   {nudgeHistory.map((nudge) => (
-                    <div key={nudge.id} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
+                    <div key={nudge.id} className="flex items-start gap-3 text-sm border-l-2 border-[var(--card-border)] pl-3">
                       <span className="text-lg">{nudge.icon}</span>
                       <div className="flex-1">
                         <p className="text-[var(--foreground)]">{nudge.message}</p>
@@ -543,13 +543,13 @@ export default function AnalyticsPage() {
         {/* KEY MOMENTS */}
         {summary.keyMoments.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
               Key Moments
             </h2>
             <div className="card p-5">
               <div className="space-y-3">
                 {summary.keyMoments.map((moment, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm border-l-2 border-gray-800 pl-3">
+                  <div key={i} className="flex items-start gap-3 text-sm border-l-2 border-[var(--card-border)] pl-3">
                     <span className="text-lg mt-0.5">
                       {moment.type === 'drop' ? '📉' : '📈'}
                     </span>
@@ -566,7 +566,7 @@ export default function AnalyticsPage() {
 
         {/* RECOMMENDATIONS */}
         <div className="mb-8">
-          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-gray-800">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium mb-4 pb-3 border-b border-[var(--card-border)]">
             Recommendations
           </h2>
           <div className="card p-5">
@@ -582,14 +582,14 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Methodology note */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 mb-6">
+        <div className="card p-4 mb-6 opacity-80">
           <p className="text-xs text-[var(--muted-light)] leading-relaxed">
             <span className="font-medium text-[var(--muted)]">How these metrics work:</span>{' '}
             Engagement scores are computed from eye contact (gaze estimation via MediaPipe), speaking time balance,
             audio energy, interruption frequency, and attention stability. These are calibrated heuristics, not
             validated psychometric instruments. Student states (confused, drifting, etc.) are inferred from
             facial expression + gaze + silence patterns. See the{' '}
-            <a href="/docs/methodology" className="text-blue-400 hover:underline">analysis methodology</a>{' '}
+            <a href="/docs/methodology" className="text-[var(--info)] hover:underline">analysis methodology</a>{' '}
             for full details and known limitations.
           </p>
         </div>

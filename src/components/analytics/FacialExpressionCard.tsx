@@ -222,11 +222,11 @@ export function FacialExpressionCard({
 
   if (!expressions) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="text-sm font-medium text-gray-300 mb-2">
+      <div className="card p-5">
+        <h3 className="text-sm font-medium text-[var(--foreground)] mb-2">
           {participantName} – Facial Expressions
         </h3>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-[var(--muted-light)]">
           No facial expression data available for {participantName}
         </p>
       </div>
@@ -243,8 +243,8 @@ export function FacialExpressionCard({
   ];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">
         {participantName} – Facial Expressions
       </h3>
 
@@ -261,16 +261,16 @@ export function FacialExpressionCard({
           return (
             <div key={key}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-300">{label}</span>
-                <span className="text-xs text-gray-400">{value}%</span>
+                <span className="text-xs font-medium text-[var(--foreground)]">{label}</span>
+                <span className="text-xs text-[var(--muted)]">{value}%</span>
               </div>
-              <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-[var(--card-hover)] rounded-full h-2 overflow-hidden">
                 <div
                   className={`h-full ${barColor} transition-all duration-300`}
                   style={{ width: `${value}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[var(--muted-light)] mt-1">
                 {getExpressionDescription(key, value)}
               </p>
             </div>
@@ -279,44 +279,44 @@ export function FacialExpressionCard({
       </div>
 
       {/* Head Movement Section */}
-      <div className="border-t border-gray-800 pt-4">
-        <h4 className="text-xs font-medium text-gray-300 mb-3">Head Movement</h4>
+      <div className="border-t border-[var(--card-border)] pt-4">
+        <h4 className="text-xs font-medium text-[var(--foreground)] mb-3">Head Movement</h4>
         <div className="space-y-2">
           {/* Nod frequency */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-xs text-gray-300 font-medium mb-1">Nodding</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--foreground)] font-medium mb-1">Nodding</p>
+              <p className="text-xs text-[var(--muted-light)]">
                 {getHeadMovementDescription('nod', headMovement.nodFrequency)}
               </p>
             </div>
-            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+            <span className="text-xs text-[var(--muted)] ml-2 whitespace-nowrap">
               {headMovement.nodFrequency}%
             </span>
           </div>
 
           {/* Shake frequency */}
-          <div className="flex items-start justify-between border-t border-gray-800 pt-2">
+          <div className="flex items-start justify-between border-t border-[var(--card-border)] pt-2">
             <div className="flex-1">
-              <p className="text-xs text-gray-300 font-medium mb-1">Head Shaking</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--foreground)] font-medium mb-1">Head Shaking</p>
+              <p className="text-xs text-[var(--muted-light)]">
                 {getHeadMovementDescription('shake', headMovement.shakeFrequency)}
               </p>
             </div>
-            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+            <span className="text-xs text-[var(--muted)] ml-2 whitespace-nowrap">
               {headMovement.shakeFrequency}%
             </span>
           </div>
 
           {/* Head tilt */}
-          <div className="flex items-start justify-between border-t border-gray-800 pt-2">
+          <div className="flex items-start justify-between border-t border-[var(--card-border)] pt-2">
             <div className="flex-1">
-              <p className="text-xs text-gray-300 font-medium mb-1">Head Tilt</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--foreground)] font-medium mb-1">Head Tilt</p>
+              <p className="text-xs text-[var(--muted-light)]">
                 {getHeadMovementDescription('tilt', headMovement.tiltAverage)}
               </p>
             </div>
-            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+            <span className="text-xs text-[var(--muted)] ml-2 whitespace-nowrap">
               {headMovement.tiltAverage}°
             </span>
           </div>
@@ -324,7 +324,7 @@ export function FacialExpressionCard({
       </div>
 
       {/* Responsive note */}
-      <p className="text-xs text-gray-600 mt-4 italic">
+      <p className="text-xs text-[var(--muted-light)] mt-4 italic">
         Analysis based on {metricsHistory.filter(
           (s) => s[participant === 'tutor' ? 'tutorExpression' : 'studentExpression']
         ).length} detected frames

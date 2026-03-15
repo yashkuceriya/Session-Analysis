@@ -17,7 +17,7 @@ export function useMediaStream(options: UseMediaStreamOptions = { video: true, a
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: options.video ? { width: 640, height: 480, facingMode: 'user' } : false,
-        audio: options.audio ? { echoCancellation: true, noiseSuppression: true } : false,
+        audio: options.audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
       });
       streamRef.current = newStream;
       setStream(newStream);

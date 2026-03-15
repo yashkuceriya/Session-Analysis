@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSessionStore } from '@/stores/sessionStore';
 
@@ -39,7 +39,6 @@ export default function JoinPage() {
           const { token } = await tokenRes.json();
           roomToken = token;
         }
-        // If token fetch fails, continue without token (backward compatible)
       } catch {
         // Token service unavailable, continue without
       }
@@ -54,26 +53,26 @@ export default function JoinPage() {
       });
 
       // Redirect to session with room params
-      const params = new URLSearchParams({
+      const urlParams = new URLSearchParams({
         room: roomId,
         role,
         name: name,
       });
-      if (roomToken) params.set('token', roomToken);
-      router.push(`/session?${params.toString()}`);
-    } catch (err) {
+      if (roomToken) urlParams.set('token', roomToken);
+      router.push(`/session?${urlParams.toString()}`);
+    } catch {
       setError('Failed to join session. Please try again.');
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-2xl mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Join session icon">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -82,19 +81,19 @@ export default function JoinPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Join Tutoring Session</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Join Tutoring Session</h1>
+          <p className="text-[var(--muted)] text-sm">
             Enter your details to join room
-            <span className="font-mono ml-2 text-blue-400 font-semibold">{roomId}</span>
+            <span className="font-mono ml-2 text-[var(--accent)] font-semibold">{roomId}</span>
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
+        <div className="card p-6 space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                 Your Name
               </label>
               <input
@@ -102,14 +101,14 @@ export default function JoinPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-[var(--card-hover)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                 disabled={isLoading}
               />
             </div>
 
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                 Role
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -118,8 +117,8 @@ export default function JoinPage() {
                   onClick={() => setRole('student')}
                   className={`px-4 py-3 rounded-lg transition-colors font-medium text-sm ${
                     role === 'student'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-[var(--info)] text-white'
+                      : 'bg-[var(--card-hover)] text-[var(--foreground)] border border-[var(--card-border)] hover:bg-[var(--card-border)]'
                   }`}
                   disabled={isLoading}
                 >
@@ -130,8 +129,8 @@ export default function JoinPage() {
                   onClick={() => setRole('tutor')}
                   className={`px-4 py-3 rounded-lg transition-colors font-medium text-sm ${
                     role === 'tutor'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-[var(--success)] text-white'
+                      : 'bg-[var(--card-hover)] text-[var(--foreground)] border border-[var(--card-border)] hover:bg-[var(--card-border)]'
                   }`}
                   disabled={isLoading}
                 >
@@ -142,7 +141,7 @@ export default function JoinPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-3 text-sm text-red-300">
+              <div className="bg-[var(--danger-light)] border border-[var(--danger)] rounded-lg p-3 text-sm text-[var(--danger)]">
                 {error}
               </div>
             )}
@@ -151,7 +150,7 @@ export default function JoinPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-medium py-3 rounded-lg transition-colors mt-2"
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors mt-2"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -160,6 +159,7 @@ export default function JoinPage() {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Loading"
                   >
                     <path
                       strokeLinecap="round"
@@ -177,8 +177,8 @@ export default function JoinPage() {
           </form>
 
           {/* Info Box */}
-          <div className="bg-gray-800 rounded-lg p-3 text-xs text-gray-400 space-y-1">
-            <p className="font-medium text-gray-300">What happens next:</p>
+          <div className="bg-[var(--card-hover)] rounded-lg p-3 text-xs text-[var(--muted)] space-y-1">
+            <p className="font-medium text-[var(--foreground)]">What happens next:</p>
             <ul className="space-y-1">
               <li>1. Video and microphone permissions are requested</li>
               <li>2. Connection establishes with the other participant</li>
@@ -188,9 +188,9 @@ export default function JoinPage() {
         </div>
 
         {/* Wait State Hint */}
-        <div className="mt-6 text-center text-xs text-gray-500">
+        <div className="mt-6 text-center text-xs text-[var(--muted-light)]">
           <p>If the tutor has not started yet...</p>
-          <p className="text-gray-600 mt-1">
+          <p className="text-[var(--muted)] mt-1">
             You will see a waiting message in the session.
           </p>
         </div>

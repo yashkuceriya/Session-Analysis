@@ -60,9 +60,9 @@ export function EngagementHeatmap({ metricsHistory, startTime }: EngagementHeatm
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-3">Engagement Heatmap</h3>
-      <p className="text-xs text-gray-500 mb-3">Each block = 1 minute. Hover for details.</p>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-3">Engagement Heatmap</h3>
+      <p className="text-xs text-[var(--muted-light)] mb-3">Each block = 1 minute. Hover for details.</p>
       <div className="flex flex-wrap gap-1">
         {buckets.map((bucket) => (
           <div key={bucket.minute} className="group relative">
@@ -73,19 +73,19 @@ export function EngagementHeatmap({ metricsHistory, startTime }: EngagementHeatm
             </div>
             {/* Tooltip */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
-              <div className="bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs whitespace-nowrap shadow-xl">
-                <p className="text-gray-300 font-medium">Minute {bucket.minute + 1}</p>
-                <p className="text-gray-400">Engagement: <span className="text-white">{bucket.avgEngagement}%</span></p>
-                <p className="text-gray-400">Eye Contact: <span className="text-white">{bucket.avgEyeContact}%</span></p>
-                <p className="text-gray-400">Energy: <span className="text-white">{bucket.avgEnergy}%</span></p>
-                <p className="text-gray-400">State: <span className="text-white capitalize">{bucket.studentState}</span></p>
+              <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-2 text-xs whitespace-nowrap shadow-xl">
+                <p className="text-[var(--foreground)] font-medium">Minute {bucket.minute + 1}</p>
+                <p className="text-[var(--muted)]">Engagement: <span className="text-[var(--foreground)]">{bucket.avgEngagement}%</span></p>
+                <p className="text-[var(--muted)]">Eye Contact: <span className="text-[var(--foreground)]">{bucket.avgEyeContact}%</span></p>
+                <p className="text-[var(--muted)]">Energy: <span className="text-[var(--foreground)]">{bucket.avgEnergy}%</span></p>
+                <p className="text-[var(--muted)]">State: <span className="text-[var(--foreground)] capitalize">{bucket.studentState}</span></p>
               </div>
             </div>
           </div>
         ))}
       </div>
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-3 text-[10px] text-gray-500">
+      <div className="flex items-center gap-3 mt-3 text-[10px] text-[var(--muted-light)]">
         <span>Low</span>
         <div className="flex gap-0.5">
           <div className="w-3 h-3 rounded bg-red-500" />

@@ -16,19 +16,20 @@ export function SpeakingTimeChart({ tutorPercent, studentPercent, tutorName, stu
   ];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Speaking Time Distribution</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Speaking Time Distribution</h3>
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-          <XAxis type="number" domain={[0, 100]} stroke="#64748b" fontSize={11} tickFormatter={(v) => `${v}%`} />
-          <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={12} width={70} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" horizontal={false} />
+          <XAxis type="number" domain={[0, 100]} stroke="var(--muted)" fontSize={11} tickFormatter={(v) => `${v}%`} />
+          <YAxis type="category" dataKey="name" stroke="var(--muted)" fontSize={12} width={70} />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--card-border)',
               borderRadius: '8px',
               fontSize: '12px',
+              color: 'var(--foreground)',
             }}
             formatter={(value) => [`${value}%`, 'Talk Time']}
           />

@@ -173,7 +173,7 @@ function computeSessionStats(
   const avgEyeContactStudent = Math.round((eyeContactStudent / n) * 100);
 
   // Eye contact trends (simple: compare first third vs last third)
-  const thirdSize = Math.floor(n / 3);
+  const thirdSize = Math.max(1, Math.floor(n / 3));
   const eyeContactTrendTutor = getExpression(
     metricsHistory
       .slice(0, thirdSize)
@@ -409,7 +409,7 @@ function buildNarrative(stats: SessionStats, config: SessionConfig): NarrativeSe
   }
 
   if (suggestions.length > 0) {
-    closingText += `To further enhance future sessions, consider ${suggestions.join(', ')} could further improve session quality.`;
+    closingText += `To further enhance future sessions, consider ${suggestions.join(', ')}. These adjustments could further improve session quality.`;
   } else {
     closingText += `The session demonstrates strong facilitation practices and student engagement.`;
   }
@@ -430,9 +430,9 @@ export function SessionNarrativeSummary({
 }: SessionNarrativeSummaryProps) {
   if (metricsHistory.length === 0) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h3 className="text-sm font-medium text-gray-300 mb-2">Session Summary</h3>
-        <p className="text-xs text-gray-500">No metrics available</p>
+      <div className="card p-6">
+        <h3 className="text-sm font-medium text-[var(--foreground)] mb-2">Session Summary</h3>
+        <p className="text-xs text-[var(--muted-light)]">No metrics available</p>
       </div>
     );
   }
@@ -441,10 +441,10 @@ export function SessionNarrativeSummary({
   const narrative = buildNarrative(stats, sessionConfig);
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+    <div className="card p-6">
       <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-sm font-medium text-gray-300">Session Summary</h3>
-        <span className="inline-flex items-center gap-1 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-md">
+        <h3 className="text-sm font-medium text-[var(--foreground)]">Session Summary</h3>
+        <span className="inline-flex items-center gap-1 text-xs bg-[var(--card-hover)] text-[var(--muted)] px-2 py-1 rounded-md">
           📊 AI-free analysis
         </span>
       </div>
@@ -455,17 +455,17 @@ export function SessionNarrativeSummary({
             key={idx}
             className={`text-sm leading-relaxed ${
               section.tone === 'positive'
-                ? 'text-green-200'
+                ? 'text-[var(--success)]'
                 : section.tone === 'caution'
-                  ? 'text-amber-200'
-                  : 'text-gray-300'
+                  ? 'text-[var(--warning)]'
+                  : 'text-[var(--foreground)]'
             }`}
           >
             {section.text.split(/(\d+(?:\.\d+)?%?)/).map((part, i) => {
               // Highlight percentage numbers and numeric values
               if (/(\d+(?:\.\d+)?%?)/.test(part)) {
                 return (
-                  <span key={i} className="font-medium text-white">
+                  <span key={i} className="font-medium text-[var(--foreground)]">
                     {part}
                   </span>
                 );

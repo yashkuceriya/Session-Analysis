@@ -23,24 +23,25 @@ export function TimelineChart({ metricsHistory, startTime }: TimelineChartProps)
   if (data.length < 2) return null;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Engagement Over Time</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Engagement Over Time</h3>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
           <XAxis
             dataKey="time"
-            stroke="#64748b"
+            stroke="var(--muted)"
             fontSize={11}
             tickFormatter={(v) => `${v}m`}
           />
-          <YAxis stroke="#64748b" fontSize={11} domain={[0, 100]} />
+          <YAxis stroke="var(--muted)" fontSize={11} domain={[0, 100]} />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--card-border)',
               borderRadius: '8px',
               fontSize: '12px',
+              color: 'var(--foreground)',
             }}
             labelFormatter={(v) => `${v} min`}
           />

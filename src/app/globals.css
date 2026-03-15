@@ -73,8 +73,12 @@ body {
   --background: #0f0f17;
   --card: #1a1a2d;
   --card-border: #2a2a3d;
+  --card-hover: #22223a;
   --foreground: #f0eff4;
   --muted: #9994a8;
+  --muted-light: #6b6580;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
   background: #0f0f17;
   color: #f0eff4;
 }

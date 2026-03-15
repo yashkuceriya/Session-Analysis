@@ -76,20 +76,20 @@ export function ExpressionTimelineChart({
     if (!data) return null;
 
     return (
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 text-xs shadow-xl">
-        <p className="text-gray-300 font-medium mb-1">Time: {data.time.toFixed(1)}m</p>
+      <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-3 text-xs shadow-xl">
+        <p className="text-[var(--foreground)] font-medium mb-1">Time: {data.time.toFixed(1)}m</p>
         <p className="text-green-400">Smile: {data.smile}%</p>
         <p className="text-blue-400">Focus: {data.focus}%</p>
         <p className="text-orange-400">Confusion: {data.confusion}%</p>
         <p className="text-yellow-400">Surprise: {data.surprise}%</p>
-        <p className="text-gray-400">Neutral: {data.neutral}%</p>
+        <p className="text-[var(--muted)]">Neutral: {data.neutral}%</p>
       </div>
     );
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Student Expression Timeline</h3>
+    <div className="card p-5">
+      <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Student Expression Timeline</h3>
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
           <defs>
@@ -110,19 +110,19 @@ export function ExpressionTimelineChart({
               <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="neutralGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6b7280" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
+              <stop offset="5%" stopColor="#b5afa6" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#b5afa6" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
           <XAxis
             dataKey="time"
-            stroke="#64748b"
+            stroke="var(--muted)"
             fontSize={11}
             tickFormatter={(v) => `${v}m`}
           />
           <YAxis
-            stroke="#64748b"
+            stroke="var(--muted)"
             fontSize={11}
             domain={[0, 100]}
             label={{ value: '%', angle: -90, position: 'insideLeft' }}

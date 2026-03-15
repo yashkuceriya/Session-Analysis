@@ -46,7 +46,6 @@ export class PeerConnectionV2 {
   private localStream: MediaStream | null = null;
   private makingOffer = false;
   private connectionState: ConnectionState = 'disconnected';
-  private statsInterval: number | null = null;
   private lastStats: Partial<ConnectionStats> = {};
   private ignoreOffer = false;
 
@@ -78,20 +77,18 @@ export class PeerConnectionV2 {
       from: this.config.role,
       roomId: this.config.roomId,
     });
-
-    // Start stats monitoring
-    this.startStatsMonitoring();
   }
 
   private createPeerConnection(): void {
     const iceServers = this.config.iceServers || [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      {
-        urls: 'turn:turn.example.com:3478',
-        username: 'user',
-        credential: 'pass',
-      },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      // TURN servers — configure via environment variables for production
+      ...(typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__TURN_SERVERS__
+        ? (window as unknown as Record<string, unknown>).__TURN_SERVERS__ as RTCIceServer[]
+        : []),
     ];
 
     this.pc = new RTCPeerConnection({
@@ -99,6 +96,12 @@ export class PeerConnectionV2 {
     });
 
     const remoteStream = new MediaStream();
+
+    // Initiator creates the data channel; responder receives via ondatachannel
+    if (this.config.role === 'tutor') {
+      this.dataChannel = this.pc.createDataChannel('chat', { ordered: true });
+      this.setupDataChannelListeners();
+    }
 
     this.pc.ontrack = (event) => {
       event.track.onunmute = () => {
@@ -271,26 +274,6 @@ export class PeerConnectionV2 {
     }, 1000);
   }
 
-  private startStatsMonitoring(): void {
-    if (this.statsInterval !== null) {
-      clearInterval(this.statsInterval);
-    }
-
-    this.statsInterval = window.setInterval(async () => {
-      const stats = await this.getStats();
-      if (stats) {
-        this.lastStats = stats;
-      }
-    }, 2000); // Poll every 2 seconds
-  }
-
-  private stopStatsMonitoring(): void {
-    if (this.statsInterval !== null) {
-      clearInterval(this.statsInterval);
-      this.statsInterval = null;
-    }
-  }
-
   async getStats(): Promise<ConnectionStats | null> {
     if (!this.pc) return null;
 
@@ -360,6 +343,12 @@ export class PeerConnectionV2 {
       return;
     }
 
+    // Backpressure: don't send if buffer is too full (16KB threshold)
+    if (this.dataChannel.bufferedAmount > 16384) {
+      console.warn('[PeerConnectionV2] Data channel buffer full, dropping message');
+      return;
+    }
+
     try {
       this.dataChannel.send(JSON.stringify(msg));
     } catch (err) {
@@ -367,23 +356,21 @@ export class PeerConnectionV2 {
     }
   }
 
-  // Create/request data channel for initiator
-  ensureDataChannel(): void {
-    if (!this.pc || this.dataChannel) return;
-
-    try {
-      this.dataChannel = this.pc.createDataChannel('chat', {
-        ordered: true,
-      });
-      this.setupDataChannelListeners();
-    } catch {
-      // Data channel creation failed
+  /** Replace a track (e.g., swap camera for screen share) */
+  async replaceTrack(oldTrack: MediaStreamTrack, newTrack: MediaStreamTrack): Promise<void> {
+    if (!this.pc) return;
+    const sender = this.pc.getSenders().find(s => s.track?.kind === oldTrack.kind);
+    if (sender) {
+      await sender.replaceTrack(newTrack);
     }
   }
 
-  stop(): void {
-    this.stopStatsMonitoring();
+  /** Get all senders for track replacement */
+  getSenders(): RTCRtpSender[] {
+    return this.pc?.getSenders() || [];
+  }
 
+  stop(): void {
     this.signalingClient.send({
       type: 'leave',
       from: this.config.role,

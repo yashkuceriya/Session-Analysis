@@ -4,7 +4,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { SessionTimer } from './SessionTimer';
 import { LatencyIndicator } from './LatencyIndicator';
 import { useAutoHide } from '@/hooks/useAutoHide';
-import { useRef, useEffect } from 'react';
+import { useRef, useState, useCallback } from 'react';
 
 interface ControlsBarProps {
   onEndSession: () => void;
@@ -44,8 +44,17 @@ export function ControlsBar({
 
   const { isVisible: autoHideVisible, onMouseEnter, onMouseLeave } = useAutoHide();
   const controlsRef = useRef<HTMLDivElement>(null);
+  const [isEnding, setIsEnding] = useState(false);
 
-  const isControlsVisible = visible && autoHideVisible;
+  // Debounced end session to prevent double-clicks
+  const handleEndClick = useCallback(() => {
+    if (isEnding) return;
+    setIsEnding(true);
+    onEndSession();
+  }, [isEnding, onEndSession]);
+
+  // Only use auto-hide, not the external visible prop (which causes flickering)
+  const isControlsVisible = autoHideVisible;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pointer-events-none z-40">
@@ -247,8 +256,11 @@ export function ControlsBar({
         </button>
 
         <button
-          onClick={onEndSession}
-          className="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-colors relative group"
+          onClick={handleEndClick}
+          disabled={isEnding}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
+            isEnding ? 'bg-red-800 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500'
+          }`}
           title="End call"
         >
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -88,10 +88,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
+      <div className="min-h-screen p-6 md:p-8">
         <div className="flex flex-col items-center justify-center min-h-96">
-          <div className="w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin" />
-          <p className="mt-4 text-gray-400">Loading dashboard...</p>
+          <div className="w-10 h-10 border-3 border-[var(--card-border)] border-t-blue-500 rounded-full animate-spin" />
+          <p className="mt-4 text-[var(--muted)]">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -133,19 +133,19 @@ export default function DashboardPage() {
   const { description: trendDescription } = computeTrends();
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 to-gray-900 border-b border-gray-800 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <header className="card mx-4 sm:mx-6 lg:mx-8 mt-6 mb-8 sticky top-6 z-40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--card-border)] pb-6">
           <div>
-            <h1 className="text-4xl font-bold">Tutor Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-2">
+            <h1 className="text-4xl font-bold text-[var(--foreground)]">Tutor Dashboard</h1>
+            <p className="text-[var(--muted)] text-sm mt-2">
               You've completed {stats.totalSessions} session{stats.totalSessions !== 1 ? 's' : ''} with an average engagement of {stats.avgEngagement}%
             </p>
           </div>
           <Link
             href="/session"
-            className="inline-block bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/50"
+            className="inline-block bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 hover:shadow-lg"
           >
             New Session
           </Link>
@@ -154,10 +154,10 @@ export default function DashboardPage() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center min-h-96 bg-gray-900 border border-gray-800 rounded-lg">
+          <div className="card flex flex-col items-center justify-center min-h-96 p-8">
             <div className="text-center">
               <svg
-                className="w-16 h-16 mx-auto text-gray-600 mb-4"
+                className="w-16 h-16 mx-auto text-[var(--muted-light)] mb-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -169,11 +169,11 @@ export default function DashboardPage() {
                   d="M12 6.253v13m0-13C6.5 6.253 2 10.753 2 16.5S6.5 26.747 12 26.747s10-4.5 10-10.247S17.5 6.253 12 6.253z"
                 />
               </svg>
-              <h2 className="text-2xl font-semibold text-white mb-2">No sessions yet</h2>
-              <p className="text-gray-400 mb-6">No sessions yet. Start your first tutoring session to see analytics here.</p>
+              <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-2">No sessions yet</h2>
+              <p className="text-[var(--muted)] mb-6">No sessions yet. Start your first tutoring session to see analytics here.</p>
               <Link
                 href="/session"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
+                className="inline-block bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
               >
                 Start First Session
               </Link>
@@ -215,44 +215,44 @@ export default function DashboardPage() {
 
             {/* Engagement Trend Chart */}
             {stats.engagementTrend.length > 0 && (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold text-white mb-4">Engagement Trend (Last 10 Sessions)</h2>
+              <div className="card p-6 mb-8">
+                <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">Engagement Trend (Last 10 Sessions)</h2>
                 <EngagementChart data={stats.engagementTrend} />
               </div>
             )}
 
             {/* Session History Table */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-gray-800">
-                <h2 className="text-xl font-semibold text-white">Session History</h2>
+            <div className="card overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-[var(--card-border)]">
+                <h2 className="text-xl font-semibold text-[var(--foreground)]">Session History</h2>
               </div>
 
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-800 border-b border-gray-700">
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <tr className="bg-[var(--card-hover)] border-b border-[var(--card-border)]">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Date/Time
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Subject
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Student
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Duration
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Engagement
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800">
+                  <tbody className="divide-y divide-[var(--card-border)]">
                     {sessions.map((session, index) => (
                       <SessionRow key={session.id} session={session} isFirst={index === 0} />
                     ))}
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden divide-y divide-gray-800">
+              <div className="md:hidden divide-y divide-[var(--card-border)]">
                 {sessions.map((session, index) => (
                   <SessionCard key={session.id} session={session} isFirst={index === 0} />
                 ))}
@@ -269,9 +269,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Overall NL Summary */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-3">Overview</h3>
-              <p className="text-gray-300 leading-relaxed">
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-[var(--foreground)] mb-3">Overview</h3>
+              <p className="text-[var(--foreground)] leading-relaxed">
                 {trendDescription}
               </p>
             </div>
@@ -280,7 +280,7 @@ export default function DashboardPage() {
       </main>
 
       {error && (
-        <div className="fixed bottom-4 right-4 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg max-w-sm">
+        <div className="fixed bottom-4 right-4 bg-[var(--danger-light)] border border-[var(--danger)] text-[var(--danger)] px-4 py-3 rounded-lg max-w-sm">
           <p className="font-semibold">Error</p>
           <p className="text-sm">{error}</p>
         </div>
@@ -303,12 +303,12 @@ function StatCard({
   borderColor: string;
 }) {
   return (
-    <div className={`bg-gray-900 border border-gray-800 border-t-2 ${borderColor} rounded-lg p-6`}>
+    <div className={`card border-t-2 ${borderColor} p-6`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-bold text-white mt-2">{value}</p>
-          <p className="text-gray-400 text-xs mt-2">{descriptor}</p>
+          <p className="text-[var(--muted)] text-sm font-semibold uppercase tracking-wider">{label}</p>
+          <p className="text-3xl font-bold text-[var(--foreground)] mt-2">{value}</p>
+          <p className="text-[var(--muted)] text-xs mt-2">{descriptor}</p>
         </div>
         <span className="text-3xl">{icon}</span>
       </div>
@@ -339,13 +339,29 @@ function EngagementChart({ data }: { data: number[] }) {
   // Create gradient fill path
   const fillPath = `M ${points[0].x} ${points[0].y} ${polylinePoints} L ${points[points.length - 1].x} ${height - padding} L ${padding} ${height - padding} Z`;
 
+  // Theme-aware colors using CSS custom properties
+  const getCssVar = (varName: string): string => {
+    if (typeof window !== 'undefined') {
+      return window.getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+    // Fallback colors for SSR
+    const fallbacks: { [key: string]: string } = {
+      '--card-border': '#e8e5e0',
+      '--muted': '#8c8579',
+    };
+    return fallbacks[varName] || '#000000';
+  };
+
+  const borderColor = getCssVar('--card-border');
+  const mutedColor = getCssVar('--muted');
+
   return (
     <div className="flex justify-center overflow-x-auto">
       <svg width={width} height={height} className="min-w-full">
         <defs>
           <linearGradient id="engagementGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--info, #3B82F6)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="var(--info, #3B82F6)" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -357,7 +373,7 @@ function EngagementChart({ data }: { data: number[] }) {
             y1={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight}
             x2={width - padding}
             y2={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight}
-            stroke="#666666"
+            stroke={borderColor}
             strokeWidth="1"
             strokeDasharray="4"
           />
@@ -365,7 +381,7 @@ function EngagementChart({ data }: { data: number[] }) {
             x={width - padding + 5}
             y={padding + chartHeight - ((40 - minValue) / (maxValue - minValue)) * chartHeight + 3}
             fontSize="10"
-            fill="#999999"
+            fill={mutedColor}
           >
             Fair
           </text>
@@ -378,7 +394,7 @@ function EngagementChart({ data }: { data: number[] }) {
             y1={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight}
             x2={width - padding}
             y2={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight}
-            stroke="#666666"
+            stroke={borderColor}
             strokeWidth="1"
             strokeDasharray="4"
           />
@@ -386,7 +402,7 @@ function EngagementChart({ data }: { data: number[] }) {
             x={width - padding + 5}
             y={padding + chartHeight - ((70 - minValue) / (maxValue - minValue)) * chartHeight + 3}
             fontSize="10"
-            fill="#999999"
+            fill={mutedColor}
           >
             Good
           </text>
@@ -397,8 +413,8 @@ function EngagementChart({ data }: { data: number[] }) {
           const y = padding + chartHeight - ((gridValue - minValue) / (maxValue - minValue)) * chartHeight;
           return (
             <g key={`grid-${gridValue}`}>
-              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#374151" strokeWidth="1" strokeDasharray="4" opacity="0.5" />
-              <text x={padding - 10} y={y + 4} fontSize="11" fill="#6B7280" textAnchor="end">
+              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke={borderColor} strokeWidth="1" strokeDasharray="4" opacity="0.5" />
+              <text x={padding - 10} y={y + 4} fontSize="11" fill={mutedColor} textAnchor="end">
                 {gridValue}
               </text>
             </g>
@@ -406,20 +422,20 @@ function EngagementChart({ data }: { data: number[] }) {
         })}
 
         {/* Axes */}
-        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#4B5563" strokeWidth="2" />
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#4B5563" strokeWidth="2" />
+        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke={borderColor} strokeWidth="2" />
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke={borderColor} strokeWidth="2" />
 
         {/* Gradient fill under line */}
         <path d={fillPath} fill="url(#engagementGradient)" />
 
         {/* Polyline */}
-        <polyline points={polylinePoints} fill="none" stroke="#3B82F6" strokeWidth="2" />
+        <polyline points={polylinePoints} fill="none" stroke="var(--info, #3B82F6)" strokeWidth="2" />
 
         {/* Data points with hover titles */}
         {points.map((point, index) => (
           <g key={`point-${index}`}>
-            <circle cx={point.x} cy={point.y} r="4" fill="#3B82F6" />
-            <circle cx={point.x} cy={point.y} r="6" fill="none" stroke="#3B82F6" strokeWidth="1" opacity="0.3" />
+            <circle cx={point.x} cy={point.y} r="4" fill="var(--info, #3B82F6)" />
+            <circle cx={point.x} cy={point.y} r="6" fill="none" stroke="var(--info, #3B82F6)" strokeWidth="1" opacity="0.3" />
             <title>{`Session ${index + 1}: ${point.value}%`}</title>
           </g>
         ))}
@@ -428,7 +444,7 @@ function EngagementChart({ data }: { data: number[] }) {
         {points.map((point, index) => {
           if (index % Math.ceil(data.length / 5) === 0 || index === data.length - 1) {
             return (
-              <text key={`label-${index}`} x={point.x} y={height - padding + 20} fontSize="11" fill="#6B7280" textAnchor="middle">
+              <text key={`label-${index}`} x={point.x} y={height - padding + 20} fontSize="11" fill={mutedColor} textAnchor="middle">
                 {index + 1}
               </text>
             );
@@ -449,10 +465,10 @@ function SessionRow({
 }) {
   const engagementColor =
     session.engagementScore >= 70
-      ? 'bg-green-500/20 text-green-400'
+      ? 'bg-green-50 text-green-700 border border-green-200'
       : session.engagementScore >= 40
-        ? 'bg-yellow-500/20 text-yellow-400'
-        : 'bg-red-500/20 text-red-400';
+        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+        : 'bg-red-50 text-red-700 border border-red-200';
 
   const engagementLabel =
     session.engagementScore >= 70
@@ -463,16 +479,16 @@ function SessionRow({
 
   return (
     <Link href={`/analytics/${session.id}`}>
-      <tr className="hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800 last:border-b-0">
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+      <tr className="hover:bg-[var(--card-hover)] transition-colors cursor-pointer border-b border-[var(--card-border)] last:border-b-0">
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">
           <div className="flex items-center gap-2">
-            {isFirst && <span className="text-xs bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded">Most recent</span>}
+            {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">Most recent</span>}
             {formatDate(session.date)}
           </div>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{session.subject}</td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{session.studentName}</td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">{session.subject}</td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">{session.studentName}</td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted)]">
           {formatDuration(session.duration)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
@@ -481,7 +497,7 @@ function SessionRow({
           </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
             {session.status || 'Completed'}
           </span>
         </td>
@@ -499,10 +515,10 @@ function SessionCard({
 }) {
   const engagementColor =
     session.engagementScore >= 70
-      ? 'bg-green-500/20 text-green-400'
+      ? 'bg-green-50 text-green-700 border border-green-200'
       : session.engagementScore >= 40
-        ? 'bg-yellow-500/20 text-yellow-400'
-        : 'bg-red-500/20 text-red-400';
+        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+        : 'bg-red-50 text-red-700 border border-red-200';
 
   const engagementLabel =
     session.engagementScore >= 70
@@ -513,14 +529,14 @@ function SessionCard({
 
   return (
     <Link href={`/analytics/${session.id}`}>
-      <div className="p-4 hover:bg-gray-800 transition-colors cursor-pointer">
+      <div className="p-4 hover:bg-[var(--card-hover)] transition-colors cursor-pointer">
         <div className="flex justify-between items-start mb-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm text-gray-400">{formatDate(session.date)}</p>
-              {isFirst && <span className="text-xs bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded">Most recent</span>}
+              <p className="text-sm text-[var(--muted)]">{formatDate(session.date)}</p>
+              {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">Most recent</span>}
             </div>
-            <p className="font-semibold text-white">{session.subject}</p>
+            <p className="font-semibold text-[var(--foreground)]">{session.subject}</p>
           </div>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${engagementColor}`}>
             {session.engagementScore}%
@@ -528,15 +544,15 @@ function SessionCard({
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
-            <p className="text-gray-400">Student</p>
-            <p className="text-gray-200">{session.studentName}</p>
+            <p className="text-[var(--muted)]">Student</p>
+            <p className="text-[var(--foreground)]">{session.studentName}</p>
           </div>
           <div>
-            <p className="text-gray-400">Duration</p>
-            <p className="text-gray-200">{formatDuration(session.duration)}</p>
+            <p className="text-[var(--muted)]">Duration</p>
+            <p className="text-[var(--foreground)]">{formatDuration(session.duration)}</p>
           </div>
           <div>
-            <p className="text-gray-400">Engagement</p>
+            <p className="text-[var(--muted)]">Engagement</p>
             <p className={`text-sm font-medium ${engagementColor.replace(/px/, '').replace(/py/, '')}`}>
               {engagementLabel}
             </p>

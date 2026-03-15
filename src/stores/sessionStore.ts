@@ -7,6 +7,7 @@ import { SessionConfig } from '@/lib/session/types';
 
 const MAX_METRICS_HISTORY = 1200; // ~10 minutes at 2Hz
 const DOWNSAMPLE_THRESHOLD = 600; // Start downsampling after 5 min
+const MAX_ARCHIVE_SIZE = 3600; // ~30 min of downsampled data
 
 type CallState = 'waiting' | 'connecting' | 'connected' | 'degraded' | 'reconnecting' | 'ended';
 
@@ -132,6 +133,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         const toArchive = history.slice(0, pruneCount);
         const downsampled = toArchive.filter((_, i) => i % 10 === 0);
         newArchive = [...state.metricsArchive, ...downsampled];
+        // Cap archive to prevent OOM on long sessions
+        if (newArchive.length > MAX_ARCHIVE_SIZE) {
+          newArchive = newArchive.slice(-MAX_ARCHIVE_SIZE);
+        }
         newHistory = [...history.slice(pruneCount), snapshot];
       } else {
         newHistory = [...history, snapshot];

@@ -39,6 +39,7 @@ export class SignalingClient {
   private reconnectTimeoutId: number | null = null;
   private isUsingWebSocket: boolean = false;
   private connected: boolean = false;
+  private wsUrl: string | null = null;
 
   constructor(roomId: string, role: PeerRole) {
     this.roomId = roomId;
@@ -59,6 +60,7 @@ export class SignalingClient {
   private async connectWebSocket(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        this.wsUrl = url;
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
@@ -164,8 +166,11 @@ export class SignalingClient {
     }
 
     this.reconnectTimeoutId = window.setTimeout(() => {
-      // Reconnect attempt is handled by WebSocket state management
-      // This would be called from a parent component that knows the URL
+      if (this.wsUrl) {
+        this.connectWebSocket(this.wsUrl).catch(() => {
+          // Reconnect failed, will retry via onclose
+        });
+      }
     }, delay);
   }
 

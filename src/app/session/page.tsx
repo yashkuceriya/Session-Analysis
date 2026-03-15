@@ -145,7 +145,7 @@ function SessionPageInner() {
   const { messages: chatMessages, sendMessage: chatSendMessage, unreadCount, markAsRead } = useChatChannel();
 
   // Auto-hide controls
-  const { isVisible: controlsVisible, onMouseMove } = useAutoHide();
+  const { isVisible: controlsVisible } = useAutoHide();
 
   // Toggle hardware tracks
   useEffect(() => { setMicEnabled(isMicEnabled); }, [isMicEnabled, setMicEnabled]);
@@ -268,14 +268,16 @@ function SessionPageInner() {
   useEffect(() => {
     if (!localStream) return;
     const attachStream = () => {
-      if (localVideoRef.current && localVideoRef.current.srcObject !== localStream) {
-        localVideoRef.current.srcObject = localStream;
+      const el = localVideoRef.current;
+      if (el && el.srcObject !== localStream) {
+        el.srcObject = localStream;
+        // Explicitly call play() — some browsers won't autoplay even with the attribute
+        el.play().catch(() => {});
       }
     };
-    // Try immediately + retry on interval until attached
+    // Try immediately + retry on interval until attached and playing
     attachStream();
-    const interval = setInterval(attachStream, 100);
-    // Stop retrying once video is playing
+    const interval = setInterval(attachStream, 500);
     const onPlaying = () => clearInterval(interval);
     localVideoRef.current?.addEventListener('playing', onPlaying);
     return () => {
@@ -334,13 +336,19 @@ function SessionPageInner() {
           // Could dispatch to chat — for now just log
         }
         if (msg.type === 'reaction' && typeof msg.data === 'string') {
-          setReactions(prev => [...prev, { id: `${Date.now()}`, emoji: msg.data as string, timestamp: Date.now() }]);
+          const ALLOWED_EMOJI = new Set(['👍','👎','❤️','😂','🎉','🤔','👏','🔥','💯','✋']);
+          const emoji = msg.data as string;
+          if (ALLOWED_EMOJI.has(emoji)) {
+            setReactions(prev => {
+              const next = [...prev, { id: `${Date.now()}-${Math.random()}`, emoji, timestamp: Date.now() }];
+              return next.length > 50 ? next.slice(-50) : next;
+            });
+          }
         }
       },
     });
     peerRef.current = peer;
     peer.start(localStream);
-    peer.ensureDataChannel(); // Create DataChannel for chat/reactions
     setRtcPeerConnection(peer.getPeerConnection());
 
     return () => {
@@ -452,16 +460,36 @@ function SessionPageInner() {
   const handleStartScreenShare = useCallback(async () => {
     const stream = await startSharing();
     if (stream && localVideoRef.current) {
-      // Replace camera with screen share in the main view
       localVideoRef.current.srcObject = stream;
+      // Replace tracks in peer connection so remote peer sees screen share
+      if (peerRef.current && localStream) {
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          const senders = peerRef.current.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(videoTrack).catch(() => {});
+          }
+        }
+      }
     }
-  }, [startSharing]);
+  }, [startSharing, localStream]);
 
   const handleStopScreenShare = useCallback(() => {
     stopSharing();
-    // Restore camera
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
+      // Restore camera track in peer connection
+      if (peerRef.current) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+          const senders = peerRef.current.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(videoTrack).catch(() => {});
+          }
+        }
+      }
     }
   }, [stopSharing, localStream]);
 
@@ -545,7 +573,7 @@ function SessionPageInner() {
   }
 
   return (
-    <div className="h-screen bg-gray-950 flex flex-col overflow-hidden" onMouseMove={onMouseMove}>
+    <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
       {/* Screen share banner */}
       <ScreenShareBanner isSharing={isSharing} onStopSharing={handleStopScreenShare} />
 

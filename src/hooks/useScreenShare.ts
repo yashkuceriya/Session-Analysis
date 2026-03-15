@@ -38,7 +38,7 @@ export function useScreenShare() {
           if (allEnded) {
             stopSharing();
           }
-        });
+        }, { once: true });
       });
 
       return stream;
