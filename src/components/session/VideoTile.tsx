@@ -35,7 +35,7 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
     forwardedRef
   ) {
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
-    const [hasVideoSrc, setHasVideoSrc] = useState(false);
+    const [videoActive, setVideoActive] = useState(false);
 
     // Merge forwarded ref with local ref
     const setVideoRef = useCallback(
@@ -50,17 +50,21 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
       [forwardedRef]
     );
 
-    // Detect when video has a real source and is playing
+    // Continuously check if video element has a real source and is rendering frames
+    // This runs forever (not just once) because srcObject can be set at any time
+    // by the parent component's useEffect
     useEffect(() => {
       const check = () => {
         const el = localVideoRef.current;
         if (!el) return;
-        // Video is "ready" if it has a srcObject OR is actively playing
-        const ready = !!(el.srcObject || (el.readyState >= 2));
-        if (ready && !hasVideoSrc) setHasVideoSrc(true);
+        // srcObject present means stream is attached
+        // readyState >= 2 means enough data to play
+        // videoWidth > 0 means actual frames are being decoded
+        const active = !!(el.srcObject && (el.readyState >= 1 || el.videoWidth > 0));
+        setVideoActive(active);
       };
-      check();
-      const interval = setInterval(check, 100);
+      // Poll aggressively until video is active, then slow down
+      const interval = setInterval(check, 50);
       return () => clearInterval(interval);
     }, []);
 
@@ -105,22 +109,21 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
         className={`relative overflow-hidden bg-gray-900 transition-all duration-300 ${
           isActiveSpeaker ? 'ring-2 ring-blue-500/50' : ''
         } ${className}`}
-        style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px' }}
+        style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px', minHeight: '200px' }}
       >
-        {/* Video element — always rendered, placeholder overlays when no source */}
+        {/* Video element — z-10 so it renders ABOVE the placeholder */}
         <video
           ref={setVideoRef}
           autoPlay
           playsInline
           muted={isLocal || isMuted}
-          onLoadedData={() => setHasVideoSrc(true)}
-          onPlaying={() => setHasVideoSrc(true)}
-          className="w-full h-full object-cover"
+          onLoadedData={() => setVideoActive(true)}
+          onPlaying={() => setVideoActive(true)}
+          className="absolute inset-0 w-full h-full object-cover z-10"
         />
 
-        {/* No-camera placeholder — polished avatar */}
-        {!hasVideoSrc && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800">
+        {/* Placeholder — z-0, fades out when video is active */}
+        <div className={`absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-opacity duration-300 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="flex flex-col items-center gap-3">
               {/* Avatar circle with gradient */}
               <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-lg`}>
@@ -129,13 +132,12 @@ export const VideoTile = forwardRef<HTMLVideoElement, VideoTileProps>(
               {/* Name below avatar */}
               <span className="text-sm text-gray-400 font-medium">{name}</span>
             </div>
-          </div>
-        )}
+        </div>
 
         {showOverlays && (
           <>
             {/* Bottom bar: name + muted + speaking indicator */}
-            <div className="absolute bottom-0 left-0 right-0 z-10">
+            <div className="absolute bottom-0 left-0 right-0 z-20">
               {/* Subtle engagement accent line */}
               <div
                 className="h-[2px] w-full transition-colors duration-1000"
