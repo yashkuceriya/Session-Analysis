@@ -7,7 +7,8 @@ import { VideoLayout } from '@/components/session/VideoLayout';
 import { FloatingSelfView } from '@/components/session/FloatingSelfView';
 import { ControlsBar } from '@/components/session/ControlsBar';
 import { SessionSkeleton } from '@/components/session/SessionSkeleton';
-// Analysis Overlays (removed: EngagementRing, StateBadge, NudgeBanner, MetricsHUD — clean FaceTime-style UI)
+import { MetricsHUD } from '@/components/session/MetricsHUD';
+// Analysis Overlays (removed: EngagementRing, StateBadge, NudgeBanner — clean FaceTime-style UI)
 // Session panels
 import { MetricsSidebar } from '@/components/session/MetricsSidebar';
 import { NudgeHistory } from '@/components/session/NudgeHistory';
@@ -832,7 +833,7 @@ function SessionPageInner() {
 
         {/* Sidebar (when toggled — analytics panel) — only visible to tutors, defaults closed */}
         {isTutor && isSidebarOpen && (
-          <div className="flex flex-col w-72 border-l border-white/[0.06] bg-black/90 backdrop-blur-xl z-30">
+          <div className="flex flex-col w-72 flex-shrink-0 border-l border-white/[0.06] bg-[#0d0d1a]/95 backdrop-blur-xl overflow-y-auto">
             <MetricsSidebar />
             <NudgeHistory />
           </div>
@@ -847,6 +848,9 @@ function SessionPageInner() {
           unreadCount={unreadCount}
         />
       </div>
+
+      {/* Metrics HUD overlay */}
+      {isTutor && <MetricsHUD visible={isHudVisible && isAnalysisVisible} />}
 
       {/* Floating controls bar — FaceTime-style pill */}
       <ControlsBar
