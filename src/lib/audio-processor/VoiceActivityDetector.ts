@@ -6,7 +6,7 @@ const BASELINE_FLOOR = 0.01;
 
 export class VoiceActivityDetector {
   private analyser: AnalyserNode | null = null;
-  private dataArray: Float32Array<ArrayBuffer> | null = null;
+  private dataArray: Float32Array | null = null;
   private isSpeaking = false;
   private lastSpeechTime = 0;
   private maxRecentEnergy = BASELINE_FLOOR;
@@ -17,7 +17,7 @@ export class VoiceActivityDetector {
     this.analyser.fftSize = 512;
     this.analyser.smoothingTimeConstant = 0.3;
     source.connect(this.analyser);
-    this.dataArray = new Float32Array(this.analyser.fftSize) as Float32Array<ArrayBuffer>;
+    this.dataArray = new Float32Array(this.analyser.fftSize);
     return this.analyser;
   }
 
@@ -26,7 +26,7 @@ export class VoiceActivityDetector {
       return { isSpeaking: false, energy: 0, timestamp };
     }
 
-    this.analyser.getFloatTimeDomainData(this.dataArray);
+    this.analyser.getFloatTimeDomainData(this.dataArray as Float32Array<ArrayBuffer>);
 
     let sumSquares = 0;
     for (let i = 0; i < this.dataArray.length; i++) {
