@@ -117,8 +117,8 @@ function computeSessionStats(
     eyeContactTutor += snapshot.tutor.eyeContactScore;
     eyeContactStudent += snapshot.student.eyeContactScore;
 
-    // Interruptions
-    interruptionCount += snapshot.session.interruptionCount;
+    // Interruptions are cumulative in snapshots, so trust the latest total.
+    interruptionCount = snapshot.session.interruptionCount;
 
     // Turn taking
     if (snapshot.session.turnTakingGapMs > 0) {
@@ -323,7 +323,7 @@ function buildNarrative(stats: SessionStats, config: SessionConfig): NarrativeSe
     openingText += `The student displayed varied engagement states. `;
   }
 
-  openingText += `Eye contact averaged ${stats.avgEyeContactStudent}% for the student and ${stats.avgEyeContactTutor}% for the tutor, both showing ${stats.eyeContactTrendStudent} trends throughout the session.`;
+  openingText += `Eye contact averaged ${stats.avgEyeContactStudent}% for the student and ${stats.avgEyeContactTutor}% for the tutor, with ${config.studentName} showing a ${stats.eyeContactTrendStudent} trend and ${config.tutorName} showing a ${stats.eyeContactTrendTutor} trend throughout the session.`;
 
   sections.push({
     text: openingText,

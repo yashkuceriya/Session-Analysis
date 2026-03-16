@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { loadSession } from '@/lib/persistence/SessionStorage';
+import { MetricSnapshot } from '@/lib/metrics-engine/types';
 import { SessionSummarizer } from '@/lib/reports/SessionSummarizer';
 import { ReportGenerator } from '@/lib/reports/ReportGenerator';
 import { RecommendationEngine } from '@/lib/reports/RecommendationEngine';
@@ -18,15 +19,42 @@ interface PageProps {
 
 export default function ReportPage({ params }: PageProps) {
   const [report, setReport] = useState<SessionReport | null>(null);
+  const [metricsHistory, setMetricsHistory] = useState<MetricSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadReport() {
       try {
-        const session = await loadSession(params.sessionId);
+        let metrics: MetricSnapshot[] = [];
+        let nudges: any[] = [];
+        let config: any = null;
+        let sessionId = params.sessionId;
 
-        if (!session) {
+        // 1. Try server API first (Supabase)
+        try {
+          const res = await fetch(`/api/sessions/${sessionId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.metrics && data.metrics.length > 0) {
+              metrics = data.metrics;
+              nudges = data.nudges || [];
+              config = data.session?.config;
+            }
+          }
+        } catch { /* server unavailable */ }
+
+        // 2. Fall back to IndexedDB
+        if (metrics.length === 0) {
+          const session = await loadSession(sessionId);
+          if (session) {
+            metrics = session.metricsHistory;
+            nudges = session.nudgeHistory;
+            config = session.config;
+          }
+        }
+
+        if (metrics.length === 0 || !config) {
           setError('Session not found');
           setLoading(false);
           return;
@@ -34,25 +62,22 @@ export default function ReportPage({ params }: PageProps) {
 
         // Generate summary
         const summarizer = new SessionSummarizer();
-        const summary = summarizer.summarize(
-          session.metricsHistory,
-          session.nudgeHistory,
-          session.config
-        );
+        const summary = summarizer.summarize(metrics, nudges, config);
 
         // Generate report
         const generator = new ReportGenerator();
         const generatedReport = generator.generateReport(
           summary,
-          session.metricsHistory,
-          session.id,
-          session.config.subject,
-          session.config.sessionType,
-          session.config.studentName,
-          session.config.tutorName
+          metrics,
+          sessionId,
+          config.subject,
+          config.sessionType,
+          config.studentName,
+          config.tutorName
         );
 
         setReport(generatedReport);
+        setMetricsHistory(metrics);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load report');
       } finally {
@@ -123,7 +148,7 @@ export default function ReportPage({ params }: PageProps) {
 
   const handleDownloadCSV = () => {
     const generator = new ReportGenerator();
-    generator.downloadCSV(report.timeline as any[], `metrics-${report.metadata.sessionId}.csv`);
+    generator.downloadCSV(metricsHistory, `metrics-${report.metadata.sessionId}.csv`);
   };
 
   return (

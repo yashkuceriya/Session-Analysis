@@ -197,36 +197,31 @@ export class SessionSummarizer {
     nudgeHistory: Nudge[]
   ): KeyMoment[] {
     const moments: KeyMoment[] = [];
+    const sortedByEngagement = [...history].sort((a, b) => a.engagementScore - b.engagementScore);
+    const lowestMoments = sortedByEngagement.slice(0, Math.min(2, sortedByEngagement.length));
+    const highestMoments = [...sortedByEngagement]
+      .reverse()
+      .slice(0, Math.min(2, sortedByEngagement.length));
 
-    // Find engagement peaks (top 20%)
-    const sorted = [...history].sort((a, b) => b.engagementScore - a.engagementScore);
-    const peakThreshold = sorted[Math.floor(sorted.length * 0.2)].engagementScore;
-
-    history.forEach((metric, i) => {
-      if (metric.engagementScore >= peakThreshold) {
-        moments.push({
-          timestamp: metric.timestamp,
-          type: 'peak',
-          description: `High engagement: ${Math.round(metric.engagementScore)}%`,
-          engagementScore: metric.engagementScore,
-        });
-      }
+    lowestMoments.forEach((metric) => {
+      moments.push({
+        timestamp: metric.timestamp,
+        type: 'valley',
+        description: `Low engagement: ${Math.round(metric.engagementScore)}%`,
+        engagementScore: metric.engagementScore,
+      });
     });
 
-    // Find engagement valleys (bottom 20%)
-    const valleyThreshold = sorted[Math.floor(sorted.length * 0.8)].engagementScore;
-    history.forEach((metric, i) => {
-      if (metric.engagementScore <= valleyThreshold) {
-        moments.push({
-          timestamp: metric.timestamp,
-          type: 'valley',
-          description: `Low engagement: ${Math.round(metric.engagementScore)}%`,
-          engagementScore: metric.engagementScore,
-        });
-      }
+    highestMoments.forEach((metric) => {
+      moments.push({
+        timestamp: metric.timestamp,
+        type: 'peak',
+        description: `High engagement: ${Math.round(metric.engagementScore)}%`,
+        engagementScore: metric.engagementScore,
+      });
     });
 
-    // Find state changes
+    // Find state changes.
     for (let i = 1; i < history.length; i++) {
       if (history[i].studentState !== history[i - 1].studentState) {
         moments.push({
@@ -250,8 +245,38 @@ export class SessionSummarizer {
       }
     });
 
-    // Sort by engagement score (descending) and return top 5
-    return moments.sort((a, b) => b.engagementScore - a.engagementScore);
+    const uniqueMoments = moments.filter((moment, index, allMoments) => {
+      return allMoments.findIndex(
+        (candidate) =>
+          candidate.timestamp === moment.timestamp &&
+          candidate.type === moment.type &&
+          candidate.description === moment.description
+      ) === index;
+    });
+
+    const getPriority = (moment: KeyMoment) => {
+      switch (moment.type) {
+        case 'valley':
+          return 0;
+        case 'nudge':
+          return 1;
+        case 'state_change':
+          return 2;
+        case 'peak':
+          return 3;
+      }
+    };
+
+    return uniqueMoments
+      .sort((a, b) => {
+        const priorityDiff = getPriority(a) - getPriority(b);
+        if (priorityDiff !== 0) return priorityDiff;
+        if (a.type === 'valley') return a.engagementScore - b.engagementScore;
+        if (a.type === 'peak') return b.engagementScore - a.engagementScore;
+        return a.timestamp - b.timestamp;
+      })
+      .slice(0, 5)
+      .sort((a, b) => a.timestamp - b.timestamp);
   }
 
   private summarizeNudges(

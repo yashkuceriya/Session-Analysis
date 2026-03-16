@@ -91,7 +91,9 @@ export default function DashboardPage() {
               subject: s.config?.subject || 'Unknown',
               studentName: s.config?.studentName || 'Unknown',
               duration: s.endTime ? (s.endTime - s.startTime) : 0,
-              engagementScore: Math.round(s.metricsHistory?.[s.metricsHistory.length - 1]?.engagement || 0),
+              engagementScore: Math.round(
+                s.metricsHistory?.[s.metricsHistory.length - 1]?.engagementScore || 0
+              ),
               status: s.status || 'completed',
             }));
           } catch (dbErr) {

@@ -26,6 +26,9 @@ interface VideoLayoutProps {
   isScreenSharing?: boolean;
   /** Whether the remote peer is screen sharing */
   remoteIsScreenSharing?: boolean;
+  tutorMuted?: boolean;
+  studentMuted?: boolean;
+  connectionQuality?: 'excellent' | 'good' | 'poor' | 'reconnecting';
 }
 
 export function VideoLayout({
@@ -43,6 +46,9 @@ export function VideoLayout({
   isRoomMode = false,
   isScreenSharing = false,
   remoteIsScreenSharing = false,
+  tutorMuted = false,
+  studentMuted = false,
+  connectionQuality,
 }: VideoLayoutProps) {
   const currentMetrics = useSessionStore((state) => state.currentMetrics);
 
@@ -75,16 +81,18 @@ export function VideoLayout({
     return (
       <div className="w-full h-full p-3 bg-[#0d0d1a] relative">
         <VideoTile
+          ref={isLocalTutor ? studentVideoRef : tutorVideoRef}
           name={remoteLabel}
           stream={remoteStream}
           isSpeaking={remoteMetrics.isSpeaking}
           eyeContactScore={remoteIsScreenSharing ? undefined : remoteMetrics.eyeContactScore}
-          isMuted={isLocalTutor}
+          isMuted={isLocalTutor ? studentMuted : tutorMuted}
           isLocal={false}
           engagementScore={remoteIsScreenSharing ? undefined : engagementScore}
           studentState={!isLocalTutor && !remoteIsScreenSharing ? (studentState as StudentState) : undefined}
           isActiveSpeaker={true}
           showOverlays={showOverlays && !remoteIsScreenSharing}
+          connectionQuality={connectionQuality}
           className="w-full h-full"
         />
         {remoteIsScreenSharing && (
@@ -104,31 +112,35 @@ export function VideoLayout({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 w-full h-full bg-[#0d0d1a]" style={{ minHeight: 0 }}>
         {/* Tutor tile */}
         <VideoTile
+          ref={tutorVideoRef}
           name={tutorLabel}
           stream={tutorStream}
           isSpeaking={tutorMetrics.isSpeaking}
           eyeContactScore={tutorMetrics.eyeContactScore}
-          isMuted={true}
+          isMuted={tutorMuted}
           isLocal={localRole === 'tutor'}
           engagementScore={engagementScore}
           isActiveSpeaker={activeSpeaker === 'tutor'}
           showOverlays={showOverlays}
+          connectionQuality={localRole === 'tutor' ? undefined : connectionQuality}
           className="w-full h-full"
         />
 
         {/* Student tile */}
         <VideoTile
+          ref={studentVideoRef}
           name={studentLabel}
           stream={studentStream}
           videoSrc={!studentStream ? demoVideoSrc : undefined}
           isSpeaking={studentMetrics.isSpeaking}
           eyeContactScore={studentMetrics.eyeContactScore}
-          isMuted={false}
+          isMuted={studentMuted}
           isLocal={localRole === 'student'}
           engagementScore={engagementScore}
           studentState={studentState as StudentState}
           isActiveSpeaker={activeSpeaker === 'student'}
           showOverlays={showOverlays}
+          connectionQuality={localRole === 'student' ? undefined : connectionQuality}
           className="w-full h-full"
         />
       </div>
@@ -152,17 +164,19 @@ export function VideoLayout({
   return (
     <div className="w-full h-full p-3 bg-[#0d0d1a] relative">
       <VideoTile
+        ref={isActiveSpeakerTutor ? tutorVideoRef : studentVideoRef}
         name={mainLabel}
         stream={mainStream}
         videoSrc={mainVideoSrc}
         isSpeaking={mainIsSpeaking}
         eyeContactScore={mainEyeContact}
-        isMuted={isActiveSpeakerTutor}
+        isMuted={isActiveSpeakerTutor ? tutorMuted : studentMuted}
         isLocal={mainIsLocal}
         engagementScore={screenShareIsMain ? undefined : engagementScore}
         studentState={isActiveSpeakerTutor || screenShareIsMain ? undefined : (studentState as StudentState)}
         isActiveSpeaker={true}
         showOverlays={showOverlays && !screenShareIsMain}
+        connectionQuality={!mainIsLocal ? connectionQuality : undefined}
         className="w-full h-full"
       />
       {screenShareIsMain && (

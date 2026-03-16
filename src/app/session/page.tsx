@@ -106,6 +106,7 @@ function SessionPageInner() {
   const isHudVisible = useSessionStore((s) => s.isHudVisible);
   const isChatOpen = useSessionStore((s) => s.isChatOpen);
   const toggleChat = useSessionStore((s) => s.toggleChat);
+  const setRecording = useSessionStore((s) => s.setRecording);
   const currentMetrics = useSessionStore((s) => s.currentMetrics);
   const metricsHistory = useSessionStore((s) => s.metricsHistory);
   const metricsArchive = useSessionStore((s) => s.metricsArchive);
@@ -162,7 +163,13 @@ function SessionPageInner() {
     }
   }, []);
 
-  const { messages: chatMessages, sendMessage: chatSendMessage, unreadCount, markAsRead } = useChatChannel({
+  const {
+    messages: chatMessages,
+    sendMessage: chatSendMessage,
+    unreadCount,
+    markAsRead,
+    markAsUnread,
+  } = useChatChannel({
     dataChannelSend: chatDataChannelSend,
     dataChannelMessages: incomingChatMessages,
     userRole: role,
@@ -175,6 +182,15 @@ function SessionPageInner() {
   // Toggle hardware tracks
   useEffect(() => { setMicEnabled(isMicEnabled); }, [isMicEnabled, setMicEnabled]);
   useEffect(() => { setCameraEnabled(isCameraEnabled); }, [isCameraEnabled, setCameraEnabled]);
+  useEffect(() => { setRecording(recIsRecording); }, [recIsRecording, setRecording]);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      markAsRead();
+      return;
+    }
+    markAsUnread();
+  }, [isChatOpen, markAsRead, markAsUnread]);
 
   // Sync adaptive quality to connection quality display (when in room mode)
   useEffect(() => {
@@ -690,6 +706,19 @@ function SessionPageInner() {
   // Role-aware stream mapping — passed directly to VideoTile for reliable playback
   const tutorStream = role === 'tutor' ? localStream : remoteStream;
   const studentStream = role === 'student' ? localStream : remoteStream;
+  const hasRemoteAudioTrack = !!remoteStream?.getAudioTracks().some(
+    (track) => track.readyState === 'live' && track.enabled
+  );
+  const tutorMuted = isRoomMode
+    ? role === 'tutor'
+      ? !isMicEnabled
+      : !hasRemoteAudioTrack
+    : !isMicEnabled;
+  const studentMuted = isRoomMode
+    ? role === 'student'
+      ? !isMicEnabled
+      : !!remoteStream && !hasRemoteAudioTrack
+    : false;
 
   if (!streamReady && !streamError) {
     return <SessionSkeleton />;
@@ -747,11 +776,19 @@ function SessionPageInner() {
       {/* Room code + connection dot — tiny floating badge */}
       {isRoomMode && (
         <div className="absolute top-3 right-3 z-30">
-          <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/[0.04]">
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
-            }`} />
-            <span className="text-[10px] font-mono text-white/40">{roomId}</span>
+          <div className="flex items-center gap-2">
+            {peerConnected && (
+              <QualityIndicator
+                quality={streamQuality}
+                bandwidth={Math.round(streamBandwidth)}
+              />
+            )}
+            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/[0.04]">
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+              }`} />
+              <span className="text-[10px] font-mono text-white/40">{roomId}</span>
+            </div>
           </div>
         </div>
       )}
@@ -808,6 +845,9 @@ function SessionPageInner() {
             isRoomMode={isRoomMode}
             isScreenSharing={isSharing}
             remoteIsScreenSharing={remoteIsScreenSharing}
+            tutorMuted={tutorMuted}
+            studentMuted={studentMuted}
+            connectionQuality={isRoomMode ? connectionQuality : undefined}
           />
 
           {/* Face model loading indicator */}
@@ -844,7 +884,7 @@ function SessionPageInner() {
           isOpen={isChatOpen}
           messages={chatMessages}
           onSendMessage={chatSendMessage}
-          onClose={() => { toggleChat(); markAsRead(); }}
+          onClose={toggleChat}
           unreadCount={unreadCount}
         />
       </div>

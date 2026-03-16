@@ -19,15 +19,24 @@ export function useKeyboardShortcuts(
   useEffect(() => {
     if (!enabled) return;
 
+    const getHandler = (key: string) => {
+      const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
+      return shortcuts[key] ?? shortcuts[normalizedKey];
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if user is typing in an input or textarea
+      // Don't trigger shortcuts while the user is typing into an editable control.
       const target = e.target as HTMLElement;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) {
         return;
       }
 
-      const key = e.key.toUpperCase();
-      const handler = shortcuts[key];
+      const handler = getHandler(e.key);
 
       if (handler) {
         e.preventDefault();
