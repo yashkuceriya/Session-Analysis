@@ -7,6 +7,7 @@ import { VideoLayout } from '@/components/session/VideoLayout';
 import { FloatingSelfView } from '@/components/session/FloatingSelfView';
 import { ControlsBar } from '@/components/session/ControlsBar';
 import { SessionSkeleton } from '@/components/session/SessionSkeleton';
+import { SessionTimer } from '@/components/session/SessionTimer';
 // Analysis Overlays
 import { EngagementRing } from '@/components/session/EngagementRing';
 import { StateBadge } from '@/components/session/StateBadge';
@@ -76,6 +77,9 @@ function SessionPageInner() {
   const role = (searchParams.get('role') as 'tutor' | 'student') || 'tutor';
   const roomToken = searchParams.get('token');
   const isRoomMode = !!roomId;
+
+  // Student role should NOT see analysis panels
+  const isTutor = role === 'tutor' || !isRoomMode;
 
   // Peer connection state
   const peerRef = useRef<PeerConnectionV2 | null>(null);
@@ -257,8 +261,36 @@ function SessionPageInner() {
   // Play remote audio through a separate (unmuted) audio element for reliable playback
   useEffect(() => {
     if (!remoteStream || !remoteAudioRef.current) return;
-    remoteAudioRef.current.srcObject = remoteStream;
-    remoteAudioRef.current.play().catch(() => {});
+    const audio = remoteAudioRef.current;
+    audio.srcObject = remoteStream;
+
+    const tryPlay = () => {
+      audio.play().catch(() => {
+        // Autoplay blocked — need user gesture
+        const handler = () => {
+          audio.play().catch(() => {});
+          document.removeEventListener('click', handler);
+          document.removeEventListener('touchstart', handler);
+        };
+        document.addEventListener('click', handler, { once: true });
+        document.addEventListener('touchstart', handler, { once: true });
+      });
+    };
+
+    tryPlay();
+    // Also retry when tracks become active
+    remoteStream.getTracks().forEach(track => {
+      track.addEventListener('unmute', tryPlay, { once: true });
+    });
+
+    // Periodic retry for stubborn autoplay policies (especially iPad)
+    const retryInterval = setInterval(() => {
+      if (audio.paused && audio.srcObject) {
+        audio.play().catch(() => {});
+      }
+    }, 2000);
+
+    return () => clearInterval(retryInterval);
   }, [remoteStream]);
 
   // Start local media + session on mount
@@ -329,11 +361,17 @@ function SessionPageInner() {
           router.push(`/analytics/${sid}`);
           return; // Don't process further messages
         }
-        // Timer sync: student receives tutor's startTime
+        // Timer sync: student receives tutor's startTime and sessionId
         if (msg.type === 'sync' && typeof msg.data === 'object' && msg.data !== null) {
-          const syncData = msg.data as { startTime: number };
-          if (syncData.startTime && role === 'student') {
-            useSessionStore.setState({ startTime: syncData.startTime });
+          const syncData = msg.data as { startTime: number; sessionId?: string; sessionConfig?: any };
+          if (role === 'student') {
+            const updates: any = {};
+            if (syncData.startTime) updates.startTime = syncData.startTime;
+            if (syncData.sessionId) updates.sessionId = syncData.sessionId;
+            if (syncData.sessionConfig) updates.sessionConfig = syncData.sessionConfig;
+            if (Object.keys(updates).length > 0) {
+              useSessionStore.setState(updates);
+            }
           }
         }
         if (msg.type === 'reaction' && typeof msg.data === 'string') {
@@ -361,21 +399,30 @@ function SessionPageInner() {
     };
   }, [isRoomMode, roomId, role, localStream, streamReady, setCallState, endSession, router]);
 
-  // Timer sync: tutor sends startTime to student when peer connects
+  // Timer sync: tutor periodically sends session state to student
   useEffect(() => {
     if (!peerConnected || !peerRef.current || role !== 'tutor') return;
+
     const sendSync = () => {
       const state = useSessionStore.getState();
       peerRef.current?.sendData({
         type: 'sync',
-        data: { startTime: state.startTime },
+        data: {
+          startTime: state.startTime,
+          sessionId: state.sessionId,
+          sessionConfig: state.sessionConfig,
+        },
         timestamp: Date.now(),
       });
     };
-    // Try immediately + retry once after DataChannel might have opened
+
+    // Send immediately
     sendSync();
-    const timeout = setTimeout(sendSync, 1500);
-    return () => clearTimeout(timeout);
+
+    // Then every 3 seconds for reliable delivery
+    const interval = setInterval(sendSync, 3000);
+
+    return () => clearInterval(interval);
   }, [peerConnected, role]);
 
   // Solo/demo mode: VideoTile now handles demo video via demoVideoSrc prop
@@ -428,41 +475,53 @@ function SessionPageInner() {
   }, [isActive, sessionId]);
 
   // Screen share handlers
-  const handleStartScreenShare = useCallback(async () => {
-    const stream = await startSharing();
-    if (stream && localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-      // Replace tracks in peer connection so remote peer sees screen share
-      if (peerRef.current && localStream) {
-        const videoTrack = stream.getVideoTracks()[0];
-        if (videoTrack) {
-          const senders = peerRef.current.getSenders();
-          const videoSender = senders.find(s => s.track?.kind === 'video');
-          if (videoSender) {
-            videoSender.replaceTrack(videoTrack).catch(() => {});
-          }
-        }
-      }
-    }
-  }, [startSharing, localStream]);
-
   const handleStopScreenShare = useCallback(() => {
     stopSharing();
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-      // Restore camera track in peer connection
-      if (peerRef.current) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-          const senders = peerRef.current.getSenders();
-          const videoSender = senders.find(s => s.track?.kind === 'video');
-          if (videoSender) {
-            videoSender.replaceTrack(videoTrack).catch(() => {});
-          }
+
+    // Restore camera track in peer connection
+    if (peerRef.current && localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        const senders = peerRef.current.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) {
+          videoSender.replaceTrack(videoTrack).catch(() => {});
         }
       }
     }
+
+    // Restore self-view to camera
+    if (selfViewRef.current && localStream) {
+      selfViewRef.current.srcObject = localStream;
+    }
   }, [stopSharing, localStream]);
+
+  const handleStartScreenShare = useCallback(async () => {
+    const screenStream = await startSharing();
+    if (!screenStream) return;
+
+    // Replace video track in peer connection
+    if (peerRef.current && localStream) {
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if (screenTrack) {
+        const senders = peerRef.current.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) {
+          videoSender.replaceTrack(screenTrack).catch(() => {});
+        }
+
+        // Auto-restore camera when user clicks native "Stop sharing" button
+        screenTrack.addEventListener('ended', () => {
+          handleStopScreenShare();
+        });
+      }
+    }
+
+    // Update the self-view to show screen share
+    if (selfViewRef.current) {
+      selfViewRef.current.srcObject = screenStream;
+    }
+  }, [startSharing, localStream, handleStopScreenShare]);
 
   // Recording handlers
   const handleStartRecording = useCallback(() => {
@@ -545,17 +604,23 @@ function SessionPageInner() {
 
   if (streamError) {
     return (
-      <div className="h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="text-4xl mb-4">📷</div>
-          <h2 className="text-white text-xl font-semibold mb-2">Camera Access Required</h2>
-          <p className="text-gray-400 mb-4">
+      <div className="h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center relative overflow-hidden">
+        {/* Background glow effect */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl" />
+        </div>
+
+        <div className="text-center max-w-md relative z-10">
+          <div className="text-7xl mb-8 animate-bounce">📷</div>
+          <h2 className="text-white text-3xl font-bold mb-4">Camera Access Required</h2>
+          <p className="text-gray-300 mb-6 leading-relaxed text-base">
             Please allow camera and microphone access to start the session.
           </p>
-          <p className="text-gray-600 text-sm">{streamError}</p>
+          <p className="text-gray-400 text-sm mb-8 bg-gray-800/60 backdrop-blur-lg rounded-xl px-5 py-3 border border-gray-700/50">{streamError}</p>
           <button
             onClick={() => startStream()}
-            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105 active:scale-95"
           >
             Try Again
           </button>
@@ -589,36 +654,86 @@ function SessionPageInner() {
         />
       )}
 
-      {/* Room mode status badge with invite link */}
+      {/* Room mode status bar — centered top, glassmorphic */}
       {isRoomMode && (
-        <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-gray-900/70 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs">
-          <span className="text-gray-400">
-            Room: <span className="text-white font-mono">{roomId}</span>
-          </span>
-          <button
-            onClick={() => {
-              const joinUrl = `${window.location.origin}/join/${roomId}`;
-              navigator.clipboard.writeText(joinUrl).then(() => {
-                alert('Join link copied! Share with your student.');
-              });
-            }}
-            className="text-blue-400 hover:text-blue-300 underline"
-          >
-            Copy invite link
-          </button>
-          <div className={`w-2 h-2 rounded-full ${
-            peerConnected ? (connectionQuality === 'excellent' || connectionQuality === 'good' ? 'bg-green-500' : connectionQuality === 'poor' ? 'bg-yellow-500' : 'bg-orange-500 animate-pulse')
-            : 'bg-yellow-500 animate-pulse'
-          }`} />
-          <span className={
-            peerConnected ? (connectionQuality === 'poor' ? 'text-yellow-400' : connectionQuality === 'reconnecting' ? 'text-orange-400' : 'text-green-400')
-            : 'text-yellow-400'
-          }>
-            {peerConnected ? (connectionQuality === 'reconnecting' ? 'Reconnecting...' : 'Connected') : 'Waiting...'}
-          </span>
-          {peerConnected && (
-            <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
-          )}
+        <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-center px-4 py-3 bg-gray-900/50 backdrop-blur-xl border-b border-gray-800/30">
+          <div className="flex items-center gap-8 max-w-2xl w-full">
+            {/* Left: Room info */}
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-gray-500 text-xs font-mono bg-gray-800/50 px-2.5 py-1 rounded-lg">
+                {roomId}
+              </span>
+              <button
+                onClick={() => {
+                  const joinUrl = `${window.location.origin}/join/${roomId}`;
+                  navigator.clipboard.writeText(joinUrl).then(() => {
+                    // Show brief copied feedback (tooltip would be nice)
+                  });
+                }}
+                className="text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors hover:underline"
+              >
+                Copy Link
+              </button>
+            </div>
+
+            {/* Center: Timer */}
+            <div className="flex items-center gap-2">
+              <SessionTimer />
+            </div>
+
+            {/* Right: Connection status */}
+            <div className="flex items-center gap-3 flex-1 justify-end">
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-medium ${peerConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {peerConnected ? 'Connected' : 'Waiting...'}
+                </span>
+              </div>
+              {peerConnected && (
+                <div className="flex items-center gap-2 pl-3 border-l border-gray-700/50">
+                  <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Waiting for peer overlay */}
+      {isRoomMode && !peerConnected && (
+        <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+          <div className="text-center">
+            <div className="mb-6 flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-gray-950 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <h3 className="text-white text-xl font-semibold mb-2">
+              {role === 'student' ? 'Waiting for your tutor to join...' : 'Waiting for student to join...'}
+            </h3>
+            <p className="text-gray-400 text-sm mb-4">Share the invite link to get started</p>
+            <div className="inline-flex items-center gap-2 bg-gray-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-gray-800">
+              <span className="text-gray-500 text-xs font-mono">{roomId}</span>
+              <button
+                onClick={() => {
+                  const joinUrl = `${window.location.origin}/join/${roomId}`;
+                  navigator.clipboard.writeText(joinUrl).then(() => {
+                    // Copied
+                  });
+                }}
+                className="text-blue-400 hover:text-blue-300 text-xs transition-colors"
+              >
+                Copy link
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -627,7 +742,7 @@ function SessionPageInner() {
         {/* Video area — flex-1 + min-h-0 ensures tiles fill height */}
         <div className="flex-1 relative min-h-0 min-w-0">
           {/* Video layout — optionally wrapped with engagement ring */}
-          {isAnalysisVisible ? (
+          {isTutor && isAnalysisVisible ? (
             <EngagementRing engagementScore={currentMetrics?.engagementScore ?? 50}>
               <VideoLayout
                 tutorVideoRef={tutorVideoRef}
@@ -642,6 +757,7 @@ function SessionPageInner() {
                 activeSpeaker={activeSpeaker}
                 showOverlays={true}
                 localRole={role}
+                isRoomMode={isRoomMode}
               />
             </EngagementRing>
           ) : (
@@ -656,13 +772,14 @@ function SessionPageInner() {
               studentLabel={studentLabel}
               viewMode={viewMode}
               activeSpeaker={activeSpeaker}
-              showOverlays={false}
+              showOverlays={isTutor && isAnalysisVisible}
               localRole={role}
+              isRoomMode={isRoomMode}
             />
           )}
 
-          {/* Analysis overlays — hidden when analysis mode is off */}
-          {isAnalysisVisible && (
+          {/* Analysis overlays — only visible to tutors when analysis is enabled */}
+          {isTutor && isAnalysisVisible && (
             <>
               {/* Student state badge (on student video area) */}
               {currentMetrics && (
@@ -694,18 +811,19 @@ function SessionPageInner() {
           )}
         </div>
 
-        {/* Floating self-view in speaker mode */}
-        {viewMode === 'speaker' && (
+        {/* Floating self-view in speaker mode or always in room mode */}
+        {(viewMode === 'speaker' || isRoomMode) && (
           <FloatingSelfView
             videoRef={selfViewRef}
+            stream={localStream}
             name={localLabel || 'You'}
             isMuted={!isMicEnabled}
             eyeContactScore={role === 'tutor' ? currentMetrics?.tutor.eyeContactScore : currentMetrics?.student.eyeContactScore}
           />
         )}
 
-        {/* Sidebar (when toggled — analytics panel) */}
-        {isSidebarOpen && (
+        {/* Sidebar (when toggled — analytics panel) — only visible to tutors */}
+        {isTutor && isSidebarOpen && (
           <div className="flex flex-col w-72 border-l border-gray-800 bg-gray-950 z-30">
             <MetricsSidebar />
             <NudgeHistory />
@@ -722,8 +840,8 @@ function SessionPageInner() {
         />
       </div>
 
-      {/* Metrics HUD overlay — only when analysis mode is on */}
-      <MetricsHUD visible={isHudVisible && isAnalysisVisible} />
+      {/* Metrics HUD overlay — only visible to tutors when both HUD and analysis are enabled */}
+      <MetricsHUD visible={isTutor && isHudVisible && isAnalysisVisible} />
 
       {/* Floating controls bar */}
       <ControlsBar
@@ -735,6 +853,7 @@ function SessionPageInner() {
         onStartRecording={handleStartRecording}
         onStopRecording={handleStopRecording}
         visible={controlsVisible}
+        isTutor={isTutor}
       />
 
       {/* Settings modal */}

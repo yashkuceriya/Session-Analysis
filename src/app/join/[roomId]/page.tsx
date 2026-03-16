@@ -67,29 +67,40 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-2xl mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Join session icon">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-              />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Join Tutoring Session</h1>
+    <div className="min-h-screen flex flex-col p-4">
+      {/* Top navigation */}
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => router.push('/')}
+          className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+        >
+          Home
+        </button>
+      </div>
+
+      <div className="flex items-center justify-center flex-1">
+        <div className="max-w-md w-full">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-2xl mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Join session icon">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Join Tutoring Session</h1>
           <p className="text-[var(--muted)] text-sm">
             Enter your details to join room
             <span className="font-mono ml-2 text-[var(--accent)] font-semibold">{roomId}</span>
           </p>
         </div>
 
-        {/* Card */}
-        <div className="card p-6 space-y-4">
+          {/* Card */}
+          <div className="card p-6 space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Input */}
             <div>
@@ -173,26 +184,27 @@ export default function JoinPage() {
               ) : (
                 'Join Session'
               )}
-            </button>
-          </form>
+              </button>
+            </form>
 
-          {/* Info Box */}
-          <div className="bg-[var(--card-hover)] rounded-lg p-3 text-xs text-[var(--muted)] space-y-1">
-            <p className="font-medium text-[var(--foreground)]">What happens next:</p>
-            <ul className="space-y-1">
-              <li>1. Video and microphone permissions are requested</li>
-              <li>2. Connection establishes with the other participant</li>
-              <li>3. Session analysis begins automatically</li>
-            </ul>
+            {/* Info Box */}
+            <div className="bg-[var(--card-hover)] rounded-lg p-3 text-xs text-[var(--muted)] space-y-1">
+              <p className="font-medium text-[var(--foreground)]">What happens next:</p>
+              <ul className="space-y-1">
+                <li>1. Video and microphone permissions are requested</li>
+                <li>2. Connection establishes with the other participant</li>
+                <li>3. Session analysis begins automatically</li>
+              </ul>
+            </div>
           </div>
-        </div>
 
-        {/* Wait State Hint */}
-        <div className="mt-6 text-center text-xs text-[var(--muted-light)]">
-          <p>If the tutor has not started yet...</p>
-          <p className="text-[var(--muted)] mt-1">
-            You will see a waiting message in the session.
-          </p>
+          {/* Wait State Hint */}
+          <div className="mt-6 text-center text-xs text-[var(--muted-light)]">
+            <p>If the tutor has not started yet...</p>
+            <p className="text-[var(--muted)] mt-1">
+              You will see a waiting message in the session.
+            </p>
+          </div>
         </div>
       </div>
     </div>

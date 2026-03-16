@@ -21,6 +21,7 @@ interface VideoLayoutProps {
   activeSpeaker: 'tutor' | 'student';
   showOverlays?: boolean;
   localRole?: 'tutor' | 'student';
+  isRoomMode?: boolean;
 }
 
 export function VideoLayout({
@@ -35,6 +36,7 @@ export function VideoLayout({
   activeSpeaker,
   showOverlays = true,
   localRole = 'tutor',
+  isRoomMode = false,
 }: VideoLayoutProps) {
   const currentMetrics = useSessionStore((state) => state.currentMetrics);
 
@@ -53,6 +55,33 @@ export function VideoLayout({
 
   const engagementScore = currentMetrics?.engagementScore ?? 50;
   const studentState = currentMetrics?.studentState ?? 'engaged';
+
+  // Room mode: show only the remote person's video full-screen
+  if (isRoomMode) {
+    const isLocalTutor = localRole === 'tutor';
+    // For tutor: remote = student, for student: remote = tutor
+    const remoteVideoRef = isLocalTutor ? studentVideoRef : tutorVideoRef;
+    const remoteStream = isLocalTutor ? studentStream : tutorStream;
+    const remoteLabel = isLocalTutor ? studentLabel : tutorLabel;
+    const remoteMetrics = isLocalTutor ? studentMetrics : tutorMetrics;
+
+    return (
+      <VideoTile
+        ref={remoteVideoRef}
+        name={remoteLabel}
+        stream={remoteStream}
+        isSpeaking={remoteMetrics.isSpeaking}
+        eyeContactScore={remoteMetrics.eyeContactScore}
+        isMuted={isLocalTutor}
+        isLocal={false}
+        engagementScore={engagementScore}
+        studentState={!isLocalTutor ? (studentState as StudentState) : undefined}
+        isActiveSpeaker={true}
+        showOverlays={showOverlays}
+        className="w-full h-full !rounded-none"
+      />
+    );
+  }
 
   if (viewMode === 'gallery') {
     return (

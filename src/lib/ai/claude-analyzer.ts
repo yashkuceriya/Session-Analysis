@@ -3,7 +3,17 @@ import { MetricSnapshot } from '../metrics-engine/types';
 import { Nudge } from '../coaching-system/types';
 import { SessionConfig } from '../session/types';
 
-const client = new Anthropic();
+// Lazy initialization: only create client when needed
+let _client: Anthropic | null = null;
+function getClient(): Anthropic {
+  if (!_client) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is required for AI analysis');
+    }
+    _client = new Anthropic();
+  }
+  return _client;
+}
 
 export interface AISessionAnalysis {
   sessionGrade: string;
@@ -203,7 +213,7 @@ export async function analyzeSessionWithAI(
 ): Promise<AISessionAnalysis> {
   const context = buildSessionContext(metrics, nudges, config);
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     messages: [
@@ -281,14 +291,27 @@ Respond in this exact JSON format (no markdown wrapping, pure JSON):
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
+  // Strip markdown code block wrapping if present
+  let jsonText = text.trim();
+  if (jsonText.startsWith('```json')) {
+    jsonText = jsonText.slice(7);
+  }
+  if (jsonText.startsWith('```')) {
+    jsonText = jsonText.slice(3);
+  }
+  if (jsonText.endsWith('```')) {
+    jsonText = jsonText.slice(0, -3);
+  }
+  jsonText = jsonText.trim();
+
   try {
-    return JSON.parse(text) as AISessionAnalysis;
+    return JSON.parse(jsonText) as AISessionAnalysis;
   } catch (parseErr) {
-    console.error('[claude-analyzer] Failed to parse AI response as JSON:', parseErr, 'Raw text:', text.slice(0, 200));
+    console.error('[claude-analyzer] Failed to parse AI response as JSON:', parseErr, 'Raw text:', jsonText.slice(0, 200));
     return {
       sessionGrade: 'C',
       overallScore: 50,
-      summary: text.slice(0, 300),
+      summary: jsonText.slice(0, 300),
       teachingEffectiveness: { score: 5, methodology: '', strengths: [], improvements: [], pedagogyNotes: '' },
       studentEngagement: { score: 5, overview: '', confusionAnalysis: '', attentionPatterns: '', emotionalJourney: '', breakthroughMoments: [], strugglingMoments: [] },
       communicationAnalysis: { talkTimeAssessment: '', questioningQuality: '', listeningSkills: '', turnTakingDynamics: '', interruptionPatterns: '' },
@@ -297,7 +320,7 @@ Respond in this exact JSON format (no markdown wrapping, pure JSON):
       actionPlan: { immediate: [], nextSession: [], weeklyGoals: [], longTerm: [] },
       sessionHighlights: { bestMoment: '', biggestChallenge: '', mostImprovedArea: '', keyTakeaway: '' },
       scores: { engagement: 50, communication: 50, pedagogy: 50, rapport: 50, pacing: 50 },
-      detailedNarrative: text,
+      detailedNarrative: jsonText,
     };
   }
 }

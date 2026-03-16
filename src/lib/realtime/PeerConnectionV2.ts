@@ -80,19 +80,45 @@ export class PeerConnectionV2 {
   }
 
   private createPeerConnection(): void {
+    // TURN server config from environment (with free-tier defaults)
+    const turnUrl = typeof window !== 'undefined'
+      ? (window as any).__NEXT_DATA__?.props?.pageProps?.turnUrl
+      : undefined;
+
     const iceServers = this.config.iceServers || [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      // TURN servers — configure via environment variables for production
-      ...(typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__TURN_SERVERS__
-        ? (window as unknown as Record<string, unknown>).__TURN_SERVERS__ as RTCIceServer[]
-        : []),
+      { urls: 'stun:stun4.l.google.com:19302' },
+      // Metered TURN servers — override via NEXT_PUBLIC_TURN_* env vars
+      {
+        urls: process.env.NEXT_PUBLIC_TURN_URL || 'turn:a.relay.metered.ca:80',
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'e8dd65b92c805a5e0a207542',
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || '5V2sNnBi2VqGTSgk',
+      },
+      {
+        urls: (process.env.NEXT_PUBLIC_TURN_URL || 'turn:a.relay.metered.ca:80') + '?transport=tcp',
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'e8dd65b92c805a5e0a207542',
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || '5V2sNnBi2VqGTSgk',
+      },
+      {
+        urls: process.env.NEXT_PUBLIC_TURNS_URL || 'turn:a.relay.metered.ca:443',
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'e8dd65b92c805a5e0a207542',
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || '5V2sNnBi2VqGTSgk',
+      },
+      {
+        urls: process.env.NEXT_PUBLIC_TURNS_TLS_URL || 'turns:a.relay.metered.ca:443?transport=tcp',
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'e8dd65b92c805a5e0a207542',
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || '5V2sNnBi2VqGTSgk',
+      },
+      { urls: 'stun:stun.services.mozilla.com:3478' },
+      { urls: 'stun:stun.stunprotocol.org:3478' },
     ];
 
     this.pc = new RTCPeerConnection({
       iceServers,
+      iceTransportPolicy: 'all',
     });
 
     const remoteStream = new MediaStream();
@@ -104,6 +130,13 @@ export class PeerConnectionV2 {
     }
 
     this.pc.ontrack = (event) => {
+      // Add track immediately
+      if (!remoteStream.getTrackById(event.track.id)) {
+        remoteStream.addTrack(event.track);
+      }
+      this.config.onRemoteStream(remoteStream);
+
+      // Also handle unmute for late tracks
       event.track.onunmute = () => {
         if (!remoteStream.getTrackById(event.track.id)) {
           remoteStream.addTrack(event.track);
@@ -123,6 +156,10 @@ export class PeerConnectionV2 {
       }
     };
 
+    this.pc.onicecandidateerror = (event) => {
+      console.warn('[PeerConnectionV2] ICE candidate error:', event.errorCode, event.errorText);
+    };
+
     this.pc.onconnectionstatechange = () => {
       const state = this.pc?.connectionState;
       const newState = this.mapConnectionState(state || 'disconnected');
@@ -131,6 +168,10 @@ export class PeerConnectionV2 {
       if (state === 'failed') {
         this.attemptICERestart();
       }
+    };
+
+    this.pc.onicegatheringstatechange = () => {
+      console.log('[PeerConnectionV2] ICE gathering state:', this.pc?.iceGatheringState);
     };
 
     this.pc.ondatachannel = (event) => {

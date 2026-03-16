@@ -98,18 +98,18 @@ export function TimelineStrip({ metricsHistory, nudgeHistory = [] }: TimelineStr
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-0 left-0 right-0 h-8 bg-black/30 backdrop-blur-sm overflow-x-auto scroll-smooth z-20"
+      className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black/40 to-black/20 backdrop-blur-sm overflow-x-auto scroll-smooth z-20 border-t border-gray-800/50"
     >
-      <div className="relative flex items-center h-full min-w-full">
+      <div className="relative flex items-center h-full min-w-full px-0.5">
         {/* Segments */}
-        <div className="flex items-center h-full gap-px px-1 flex-1">
+        <div className="flex items-center h-full gap-0.5 py-1.5">
           {segments.map((segment, idx) => (
             <button
               key={idx}
               onClick={(e) => handleSegmentClick(e, idx)}
               onMouseEnter={() => setHoveredSegmentIndex(idx)}
               onMouseLeave={() => setHoveredSegmentIndex(null)}
-              className={`flex-1 h-2 min-w-[6px] rounded-sm transition-all duration-200 hover:h-4 cursor-pointer ${segment.color}`}
+              className={`flex-1 h-1 min-w-[4px] rounded-full transition-all duration-200 hover:h-2.5 hover:-translate-y-1 cursor-pointer ${segment.color} opacity-90 hover:opacity-100`}
               title={
                 segment.engagementScore !== null ? `Engagement: ${Math.round(segment.engagementScore)}` : 'No data'
               }
@@ -118,7 +118,7 @@ export function TimelineStrip({ metricsHistory, nudgeHistory = [] }: TimelineStr
         </div>
 
         {/* Current time indicator */}
-        <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white/60 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white/50 pointer-events-none shadow-lg" />
 
         {/* Nudge markers */}
         {nudgePositions.map(({ nudge, percentPos }, idx) => (
@@ -127,7 +127,7 @@ export function TimelineStrip({ metricsHistory, nudgeHistory = [] }: TimelineStr
             className="absolute top-0 flex items-start justify-center pointer-events-none"
             style={{ left: `${percentPos}%` }}
           >
-            <div className="w-1 h-2 bg-orange-400 rounded-b-sm" />
+            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full shadow-md ring-1 ring-orange-500/40 transform -translate-y-1.5" title={nudge.message} />
           </div>
         ))}
       </div>
@@ -135,17 +135,19 @@ export function TimelineStrip({ metricsHistory, nudgeHistory = [] }: TimelineStr
       {/* Tooltip */}
       {tooltip && hoveredSegmentIndex === tooltip.segmentIndex && (
         <div
-          className="fixed bg-gray-900/95 border border-gray-700 rounded-lg p-2 text-xs text-white shadow-xl z-50 whitespace-nowrap pointer-events-none"
+          className="fixed bg-gray-950/95 border border-gray-700/60 rounded-lg px-3 py-2 text-xs text-white shadow-xl z-50 whitespace-nowrap pointer-events-none backdrop-blur-md"
           style={{
             left: `${tooltip.x}px`,
-            bottom: '48px',
+            bottom: '32px',
+            transform: 'translateX(-50%)',
           }}
         >
-          <p className="font-mono text-gray-400 text-[10px]">
+          <p className="font-mono text-gray-400 text-[10px] mb-1">
             {new Date(tooltip.metrics.timestamp).toLocaleTimeString()}
           </p>
-          <p>Engagement: <span className="font-semibold">{Math.round(tooltip.metrics.engagementScore)}</span></p>
-          <p>State: <span className="font-semibold">{tooltip.metrics.studentState}</span></p>
+          <p className="mb-0.5">Engagement: <span className="font-semibold text-blue-300">{Math.round(tooltip.metrics.engagementScore)}</span></p>
+          <p>State: <span className="font-semibold text-purple-300 capitalize">{tooltip.metrics.studentState}</span></p>
+          <div className="absolute -bottom-1.5 left-1/2 w-2.5 h-2.5 bg-gray-950/95 transform -translate-x-1/2 rotate-45 border-r border-b border-gray-700/60" />
         </div>
       )}
     </div>

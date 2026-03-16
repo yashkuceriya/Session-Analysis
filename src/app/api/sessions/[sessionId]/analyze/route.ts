@@ -10,37 +10,50 @@ export async function POST(
     const { sessionId } = await params;
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'AI analysis not configured' }, { status: 503 });
+      return NextResponse.json({ error: 'AI analysis requires ANTHROPIC_API_KEY environment variable. Set it in your .env.local file.' }, { status: 503 });
     }
 
-    // Try loading from Supabase first, fall back to request body
+    // Parse body first (client may send metrics as fallback)
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
     let metrics, nudges, config;
 
+    // Try Supabase first
     try {
       const [session, dbMetrics, dbNudges] = await Promise.all([
         getSession(sessionId),
         getSessionMetrics(sessionId),
         getSessionNudges(sessionId),
       ]);
-      metrics = dbMetrics;
-      nudges = dbNudges;
-      config = session.config;
+      if (dbMetrics && dbMetrics.length > 0) {
+        metrics = dbMetrics;
+        nudges = dbNudges;
+        config = session.config;
+      }
     } catch {
-      // Fall back to request body
-      const body = await req.json();
+      // Supabase unavailable
+    }
+
+    // Fall back to request body
+    if (!metrics || metrics.length === 0) {
       metrics = body.metrics || [];
       nudges = body.nudges || [];
       config = body.config || { subject: 'Unknown', sessionType: 'discussion', studentLevel: 'Unknown', tutorName: 'Tutor', studentName: 'Student' };
     }
 
     if (!metrics || metrics.length === 0) {
-      return NextResponse.json({ error: 'No session data available' }, { status: 400 });
+      return NextResponse.json({ error: 'No session data available for analysis' }, { status: 400 });
     }
 
     const analysis = await analyzeSessionWithAI(metrics, nudges, config);
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('AI analysis error:', error);
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Analysis failed — check server logs for details' }, { status: 500 });
   }
 }

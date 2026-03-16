@@ -179,8 +179,8 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
     return (
       <div
-        className={`relative overflow-hidden bg-gray-900 transition-shadow duration-300 ${
-          isActiveSpeaker ? 'ring-2 ring-blue-500/50' : ''
+        className={`relative overflow-hidden bg-gray-900 transition-all duration-300 ${
+          isActiveSpeaker ? 'ring-2 ring-blue-400 shadow-lg shadow-blue-500/30' : ''
         } ${className}`}
         style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px', minHeight: '200px' }}
       >
@@ -199,50 +199,82 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
         {/* Placeholder — z-10 (ON TOP of video), fades out when video is active */}
         <div className={`absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-opacity duration-300 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-            <div className="flex flex-col items-center gap-3">
-              {/* Avatar circle with gradient */}
-              <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-lg`}>
-                <span className="text-3xl sm:text-4xl font-semibold text-white/90 select-none">{getInitials()}</span>
+            <div className="flex flex-col items-center gap-4">
+              {/* Avatar circle with modern gradient and glow */}
+              <div className={`relative w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ring-2 ring-white/10`}>
+                {/* Subtle glow effect when speaking */}
+                {isSpeaking && (
+                  <div className="absolute inset-0 rounded-full animate-pulse ring-2 ring-green-400/60" />
+                )}
+                <span className="text-4xl sm:text-5xl font-bold text-white select-none">{getInitials()}</span>
               </div>
-              {/* Name below avatar */}
-              <span className="text-sm text-gray-400 font-medium">{name}</span>
+              {/* Name below avatar with better styling */}
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-sm sm:text-base text-white font-semibold">{name}</span>
+                {/* Connection quality dot */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${
+                    connectionQuality === 'excellent' || connectionQuality === 'good' ? 'bg-green-400' :
+                    connectionQuality === 'poor' ? 'bg-yellow-400' :
+                    'bg-orange-400 animate-pulse'
+                  }`} />
+                  <span className="text-xs text-gray-500 font-medium">
+                    {connectionQuality === 'reconnecting' ? 'Connecting...' : ''}
+                  </span>
+                </div>
+              </div>
             </div>
         </div>
 
+        {/* Loading indicator when stream exists but video not yet active */}
+        {(stream || videoSrc) && !videoActive && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+            <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="text-white/70 text-xs">Connecting video...</span>
+            </div>
+          </div>
+        )}
+
         {showOverlays && (
           <>
+            {/* Bottom gradient overlay for text readability */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none z-10" />
+
             {/* Bottom bar: name + muted + speaking indicator */}
             <div className="absolute bottom-0 left-0 right-0 z-20">
               {/* Subtle engagement accent line */}
               <div
-                className="h-[2px] w-full transition-colors duration-1000"
+                className="h-[3px] w-full transition-colors duration-1000"
                 style={{ backgroundColor: getEngagementColor() }}
               />
-              <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
                 {/* Left: name + role */}
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-white text-sm font-medium truncate">{name}</span>
-                  {isLocal && (
-                    <span className="text-[10px] text-gray-400 bg-gray-700/60 px-1.5 py-0.5 rounded">You</span>
-                  )}
-                  {isMuted && (
-                    <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <span className="text-white text-sm font-semibold truncate">{name}</span>
+                  <div className="flex items-center gap-1.5">
+                    {isLocal && (
+                      <span className="text-[10px] text-gray-300 bg-gray-700/70 backdrop-blur-sm px-2 py-0.5 rounded-full font-medium">You</span>
+                    )}
+                    {isMuted && (
+                      <svg className="w-4 h-4 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <line x1="1" y1="1" x2="23" y2="23" />
                       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
                       <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.12 1.49-.34 2.18" />
                       <line x1="12" y1="19" x2="12" y2="23" />
                       <line x1="8" y1="23" x2="16" y2="23" />
                     </svg>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Right: speaking bars */}
                 {isSpeaking && (
-                  <div className="flex items-center gap-0.5">
+                  <div className="flex items-center gap-1">
                     {[8, 12, 10].map((h, i) => (
                       <div
                         key={i}
-                        className="w-1 bg-green-400 rounded-full"
+                        className="w-1.5 bg-green-400 rounded-full shadow-lg shadow-green-400/50"
                         style={{
                           height: `${h}px`,
                           animation: `tile-bounce 0.6s ease-in-out infinite`,

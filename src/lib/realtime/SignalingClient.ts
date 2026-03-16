@@ -1,14 +1,21 @@
 /**
- * WebSocket-based signaling client for cross-device WebRTC communication.
+ * Hybrid signaling client for cross-device WebRTC communication.
  *
- * Replaces BroadcastChannel for scenarios where peers are on different devices.
+ * Supports three modes:
+ * 1. WebSocket: Full duplex communication (requires server)
+ * 2. BroadcastChannel + HTTP polling: Dual-mode for both same-browser and cross-device
+ *    - BroadcastChannel for same-browser (low latency)
+ *    - HTTP polling for cross-device (compatible with stateless deployments)
+ * 3. BroadcastChannel only: Legacy mode for same-browser only
+ *
  * Features:
  * - Auto-reconnect with exponential backoff
  * - Room-scoped messaging
  * - Heartbeat/ping to keep connection alive
- * - Fallback to BroadcastChannel if no WebSocket URL provided (same-browser dev)
+ * - Message deduplication across channels
  * - Connection state tracking
  * - Message queuing while reconnecting
+ * - Adaptive polling (500ms during negotiation, 2s once connected)
  */
 
 export type PeerRole = 'tutor' | 'student';
@@ -19,6 +26,11 @@ export interface SignalingMessage {
   roomId: string;
   sdp?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+}
+
+interface InternalSignalMessage extends SignalingMessage {
+  id?: string;
+  timestamp?: number;
 }
 
 type MessageHandler = (msg: SignalingMessage) => void;
@@ -35,11 +47,17 @@ export class SignalingClient {
   private messageHandlers: MessageHandler[] = [];
   private connectionChangeHandlers: ConnectionChangeHandler[] = [];
   private messageQueue: SignalingMessage[] = [];
-  private heartbeatInterval: number | null = null;
-  private reconnectTimeoutId: number | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private pollingInterval: ReturnType<typeof setTimeout> | null = null;
   private isUsingWebSocket: boolean = false;
+  private isUsingHttpPolling: boolean = false;
   private connected: boolean = false;
   private wsUrl: string | null = null;
+  private lastPollTime = 0;
+  private seenMessageIds = new Set<string>();
+  private broadcastChannelReady = false;
+  private httpPollingReady = false;
 
   constructor(roomId: string, role: PeerRole) {
     this.roomId = roomId;
@@ -47,14 +65,17 @@ export class SignalingClient {
   }
 
   async connect(url?: string): Promise<void> {
-    if (!url) {
-      // Fallback to BroadcastChannel for same-browser dev
-      this.initBroadcastChannel();
-      return;
+    if (url) {
+      // WebSocket mode (full duplex, requires server)
+      this.isUsingWebSocket = true;
+      return this.connectWebSocket(url);
     }
 
-    this.isUsingWebSocket = true;
-    return this.connectWebSocket(url);
+    // Dual mode: BroadcastChannel + HTTP polling
+    // BroadcastChannel handles same-browser, HTTP polling handles cross-device
+    // Both run simultaneously for maximum compatibility
+    this.initBroadcastChannel();
+    this.initHttpPolling();
   }
 
   private async connectWebSocket(url: string): Promise<void> {
@@ -119,22 +140,35 @@ export class SignalingClient {
   }
 
   private initBroadcastChannel(): void {
-    this.broadcastChannel = new BroadcastChannel(`nerdy-signaling-${this.roomId}`);
+    try {
+      this.broadcastChannel = new BroadcastChannel(`nerdy-signaling-${this.roomId}`);
 
-    this.broadcastChannel.onmessage = (event: MessageEvent<SignalingMessage>) => {
-      const msg = event.data;
-      if (msg.from !== this.role && msg.roomId === this.roomId) {
-        this.messageHandlers.forEach((h) => h(msg));
-      }
-    };
+      this.broadcastChannel.onmessage = (event: MessageEvent<InternalSignalMessage>) => {
+        const msg = event.data;
+        if (msg.from !== this.role && msg.roomId === this.roomId) {
+          // Deduplicate using message ID if available
+          if (msg.id && this.seenMessageIds.has(msg.id)) {
+            return; // Duplicate, ignore
+          }
+          if (msg.id) {
+            this.seenMessageIds.add(msg.id);
+          }
+          this.messageHandlers.forEach((h) => h(msg));
+        }
+      };
 
-    this.connected = true;
-    this.notifyConnectionChange(true);
+      this.broadcastChannelReady = true;
+      this.updateConnectionState();
+    } catch (err) {
+      console.warn('[SignalingClient] BroadcastChannel not available:', err);
+      this.broadcastChannelReady = false;
+      this.updateConnectionState();
+    }
   }
 
   private startHeartbeat(): void {
     this.stopHeartbeat();
-    this.heartbeatInterval = window.setInterval(() => {
+    this.heartbeatInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(JSON.stringify({ type: 'ping', from: this.role, roomId: this.roomId }));
@@ -165,13 +199,111 @@ export class SignalingClient {
       clearTimeout(this.reconnectTimeoutId);
     }
 
-    this.reconnectTimeoutId = window.setTimeout(() => {
+    this.reconnectTimeoutId = setTimeout(() => {
       if (this.wsUrl) {
         this.connectWebSocket(this.wsUrl).catch(() => {
           // Reconnect failed, will retry via onclose
         });
       }
     }, delay);
+  }
+
+  private initHttpPolling(): void {
+    if (typeof fetch === 'undefined') return; // Not in browser
+    this.isUsingHttpPolling = true;
+    this.lastPollTime = Date.now();
+    this.httpPollingReady = true;
+    this.updateConnectionState();
+
+    // Send initial join message
+    this.sendViaHttp({
+      type: 'join',
+      from: this.role,
+      roomId: this.roomId,
+    });
+
+    // Send ready signal after a short delay
+    setTimeout(() => {
+      this.sendViaHttp({
+        type: 'ready',
+        from: this.role,
+        roomId: this.roomId,
+      });
+    }, 500);
+
+    // Start polling loop
+    this.pollSignals();
+  }
+
+  private async sendViaHttp(msg: SignalingMessage): Promise<void> {
+    try {
+      const response = await fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(msg),
+      });
+
+      if (!response.ok) {
+        console.warn('[SignalingClient] HTTP POST failed:', response.status);
+      }
+    } catch (err) {
+      console.warn('[SignalingClient] HTTP POST error:', err);
+      // For non-WebSocket mode, we silently fail and retry on next poll
+    }
+  }
+
+  private async pollSignals(): Promise<void> {
+    if (!this.isUsingHttpPolling) {
+      return; // Polling disabled
+    }
+
+    try {
+      const response = await fetch(
+        `/api/signal?room=${encodeURIComponent(this.roomId)}&role=${encodeURIComponent(this.role)}&since=${this.lastPollTime}`,
+        { method: 'GET' }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        this.lastPollTime = data.serverTime || Date.now();
+
+        // Process new messages
+        if (data.messages && Array.isArray(data.messages)) {
+          for (const msg of data.messages) {
+            // Deduplicate
+            if (msg.id && this.seenMessageIds.has(msg.id)) {
+              continue; // Skip duplicates
+            }
+            if (msg.id) {
+              this.seenMessageIds.add(msg.id);
+            }
+
+            // Validate and deliver
+            if (msg.from !== this.role && msg.roomId === this.roomId) {
+              this.messageHandlers.forEach((h) => h(msg));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[SignalingClient] HTTP GET error:', err);
+    } finally {
+      // Adaptive polling interval: 500ms during active negotiation, 2s once stable
+      const interval = this.connectionState === 'connected' ? 2000 : 500;
+      this.pollingInterval = setTimeout(() => {
+        this.pollSignals();
+      }, interval);
+    }
+  }
+
+  private updateConnectionState(): void {
+    // Consider connected if either channel is ready
+    const wasConnected = this.connected;
+    this.connected = this.broadcastChannelReady || this.httpPollingReady;
+
+    if (wasConnected !== this.connected) {
+      this.notifyConnectionChange(this.connected);
+    }
   }
 
   private flushMessageQueue(): void {
@@ -183,30 +315,41 @@ export class SignalingClient {
     }
   }
 
+  private get connectionState(): 'connecting' | 'connected' {
+    // Simplified state for polling interval logic
+    return this.connected ? 'connected' : 'connecting';
+  }
+
   send(msg: SignalingMessage): void {
-    if (!this.isUsingWebSocket) {
-      // BroadcastChannel mode
-      if (this.broadcastChannel) {
+    if (this.isUsingWebSocket) {
+      // WebSocket mode
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         try {
-          this.broadcastChannel.postMessage(msg);
+          this.ws.send(JSON.stringify(msg));
         } catch {
-          // Channel closed
+          // Send failed, queue the message
+          this.messageQueue.push(msg);
         }
+      } else {
+        // Not connected, queue the message
+        this.messageQueue.push(msg);
       }
       return;
     }
 
-    // WebSocket mode
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    // Hybrid mode: BroadcastChannel + HTTP polling
+    // Try BroadcastChannel first (same-browser)
+    if (this.broadcastChannel) {
       try {
-        this.ws.send(JSON.stringify(msg));
+        this.broadcastChannel.postMessage(msg);
       } catch {
-        // Send failed, queue the message
-        this.messageQueue.push(msg);
+        // Channel closed, fall through to HTTP
       }
-    } else {
-      // Not connected, queue the message
-      this.messageQueue.push(msg);
+    }
+
+    // Also send via HTTP for cross-device compatibility
+    if (this.isUsingHttpPolling) {
+      this.sendViaHttp(msg);
     }
   }
 
@@ -224,6 +367,7 @@ export class SignalingClient {
 
   disconnect(): void {
     this.stopHeartbeat();
+    this.stopPolling();
 
     if (this.reconnectTimeoutId !== null) {
       clearTimeout(this.reconnectTimeoutId);
@@ -240,8 +384,18 @@ export class SignalingClient {
       this.broadcastChannel = null;
     }
 
+    this.isUsingHttpPolling = false;
+    this.broadcastChannelReady = false;
+    this.httpPollingReady = false;
     this.connected = false;
     this.notifyConnectionChange(false);
+  }
+
+  private stopPolling(): void {
+    if (this.pollingInterval !== null) {
+      clearTimeout(this.pollingInterval);
+      this.pollingInterval = null;
+    }
   }
 
   isConnected(): boolean {

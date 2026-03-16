@@ -2,9 +2,15 @@
 
 import { useState } from 'react';
 import type { AISessionAnalysis } from '@/lib/ai/claude-analyzer';
+import type { MetricSnapshot } from '@/lib/metrics-engine/types';
+import type { Nudge } from '@/lib/coaching-system/types';
+import type { SessionConfig } from '@/lib/session/types';
 
 interface AIAnalysisProps {
   sessionId: string;
+  metricsHistory?: MetricSnapshot[];
+  nudgeHistory?: Nudge[];
+  sessionConfig?: SessionConfig;
 }
 
 function ScoreBar({ label, score, color = 'blue' }: { label: string; score: number; color?: string }) {
@@ -67,7 +73,7 @@ function BulletList({ items, color = 'blue' }: { items: string[]; color?: string
   );
 }
 
-export function AIAnalysis({ sessionId }: AIAnalysisProps) {
+export function AIAnalysis({ sessionId, metricsHistory, nudgeHistory, sessionConfig }: AIAnalysisProps) {
   const [analysis, setAnalysis] = useState<AISessionAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +82,29 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/analyze`, { method: 'POST' });
+      // Prepare fallback data from props or client store
+      let metrics = metricsHistory;
+      let nudges = nudgeHistory;
+      let config = sessionConfig;
+
+      // If not passed as props, try to get from store
+      if (!metrics || !nudges || !config) {
+        try {
+          const { useSessionStore } = await import('@/stores/sessionStore');
+          const state = useSessionStore.getState();
+          metrics = metrics || state.getFullHistory();
+          nudges = nudges || state.nudgeHistory;
+          config = config || state.sessionConfig;
+        } catch {
+          // Store unavailable, will proceed with whatever we have
+        }
+      }
+
+      const res = await fetch(`/api/sessions/${sessionId}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metrics, nudges, config }),
+      });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Analysis failed');
@@ -104,17 +132,37 @@ export function AIAnalysis({ sessionId }: AIAnalysisProps) {
             <p className="text-xs text-[var(--muted)]">Powered by Claude — get personalized coaching feedback</p>
           </div>
         </div>
-        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
+            {error.includes('ANTHROPIC_API_KEY') ? (
+              <div>
+                <p className="text-red-400 text-xs font-medium mb-1">Configuration Required</p>
+                <p className="text-red-400/80 text-xs">AI analysis requires <code className="bg-red-500/20 px-1 rounded">ANTHROPIC_API_KEY</code> environment variable. Set it in your <code className="bg-red-500/20 px-1 rounded">.env.local</code> file to enable AI-powered coaching feedback.</p>
+              </div>
+            ) : (
+              <p className="text-red-400 text-xs">{error}</p>
+            )}
+          </div>
+        )}
         <button
           onClick={runAnalysis}
           disabled={loading}
           className={`w-full py-3 rounded-lg text-sm font-medium transition-all ${
             loading
               ? 'bg-[var(--card-border)] text-[var(--muted)] cursor-wait'
-              : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--foreground)] shadow-lg shadow-blue-600/20'
+              : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-lg shadow-blue-600/20'
           }`}
         >
-          {loading ? 'Analyzing session with AI...' : 'Generate Deep Session Report'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
+              <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></span>
+              <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+              Analyzing session with AI
+            </span>
+          ) : (
+            'Generate Deep Session Report'
+          )}
         </button>
       </div>
     );

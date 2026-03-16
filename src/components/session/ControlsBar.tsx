@@ -15,6 +15,7 @@ interface ControlsBarProps {
   onStartRecording?: () => void;
   onStopRecording?: () => void;
   visible?: boolean;
+  isTutor?: boolean;
 }
 
 export function ControlsBar({
@@ -26,6 +27,7 @@ export function ControlsBar({
   onStartRecording,
   onStopRecording,
   visible = true,
+  isTutor = true,
 }: ControlsBarProps) {
   const isMicEnabled = useSessionStore((s) => s.isMicEnabled);
   const isCameraEnabled = useSessionStore((s) => s.isCameraEnabled);
@@ -68,15 +70,15 @@ export function ControlsBar({
         ref={controlsRef}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`flex items-center gap-2 px-6 h-14 rounded-full bg-gray-900/90 backdrop-blur-lg shadow-2xl border border-gray-800 transition-all duration-300 pointer-events-auto mb-6 ${
+        className={`flex items-center gap-3 px-6 h-16 rounded-full bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/50 transition-all duration-300 pointer-events-auto mb-6 ${
           isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         {/* Group 1: Mic & Camera */}
         <button
           onClick={toggleMic}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-700 relative group ${
-            isMicEnabled ? 'bg-gray-700' : 'bg-red-600'
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+            isMicEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-500'
           }`}
           title={isMicEnabled ? 'Mute mic (M)' : 'Unmute mic (M)'}
         >
@@ -97,8 +99,8 @@ export function ControlsBar({
 
         <button
           onClick={toggleCamera}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-700 relative group ${
-            isCameraEnabled ? 'bg-gray-700' : 'bg-red-600'
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+            isCameraEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-500'
           }`}
           title={isCameraEnabled ? 'Stop video (V)' : 'Start video (V)'}
         >
@@ -117,12 +119,12 @@ export function ControlsBar({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-700" />
+        <div className="h-6 w-px bg-gray-700/50" />
 
         {/* Group 2: Screen Share & Chat */}
         <button
           onClick={() => isScreenSharing ? onStopScreenShare?.() : onStartScreenShare?.()}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
             isScreenSharing ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'
           }`}
           title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
@@ -137,7 +139,7 @@ export function ControlsBar({
 
         <button
           onClick={toggleChat}
-          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors relative group"
+          className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
           title="Chat"
         >
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,12 +151,12 @@ export function ControlsBar({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-700" />
+        <div className="h-6 w-px bg-gray-700/50" />
 
         {/* Group 3: View Mode, HUD & Recording */}
         <button
           onClick={() => setViewMode(viewMode === 'gallery' ? 'speaker' : 'gallery')}
-          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors relative group"
+          className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
           title={viewMode === 'gallery' ? 'Speaker view (G)' : 'Gallery view (G)'}
         >
           {viewMode === 'gallery' ? (
@@ -172,103 +174,109 @@ export function ControlsBar({
           </span>
         </button>
 
-        {/* Analysis toggle — hides all AI overlays for a clean video-call experience */}
-        <button
-          onClick={toggleAnalysis}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
-            isAnalysisVisible ? 'bg-purple-600 hover:bg-purple-500' : 'bg-gray-700 hover:bg-gray-600'
-          }`}
-          title={isAnalysisVisible ? 'Hide Analysis (A)' : 'Show Analysis (A)'}
-        >
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-          {!isAnalysisVisible && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-7 h-0.5 bg-white/80 rounded-full transform rotate-45" />
-            </div>
-          )}
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            {isAnalysisVisible ? 'Hide Analysis' : 'Show Analysis'} (A)
-          </span>
-        </button>
+        {/* Analysis toggle — hides all AI overlays for a clean video-call experience — tutors only */}
+        {isTutor && (
+          <>
+            <button
+              onClick={toggleAnalysis}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isAnalysisVisible ? 'bg-purple-600 hover:bg-purple-500' : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+              title={isAnalysisVisible ? 'Hide Analysis (A)' : 'Show Analysis (A)'}
+            >
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              {!isAnalysisVisible && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-7 h-0.5 bg-white/80 rounded-full transform rotate-45" />
+                </div>
+              )}
+              <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {isAnalysisVisible ? 'Hide Analysis' : 'Show Analysis'} (A)
+              </span>
+            </button>
 
-        <button
-          onClick={toggleHud}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
-            isHudVisible ? 'bg-blue-600 hover:bg-blue-500' : 'bg-gray-700 hover:bg-gray-600'
-          }`}
-          title={isHudVisible ? 'Hide HUD (H)' : 'Show HUD (H)'}
-        >
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            {isHudVisible ? 'Hide HUD' : 'Show HUD'} (H)
-          </span>
-        </button>
+            <button
+              onClick={toggleHud}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isHudVisible ? 'bg-blue-600 hover:bg-blue-500' : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+              title={isHudVisible ? 'Hide HUD (H)' : 'Show HUD (H)'}
+            >
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {isHudVisible ? 'Hide HUD' : 'Show HUD'} (H)
+              </span>
+            </button>
 
-        <button
-          onClick={() => isRecording ? onStopRecording?.() : onStartRecording?.()}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
-            isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'
-          }`}
-          title={isRecording ? 'Stop recording' : 'Start recording'}
-        >
-          <svg className="w-5 h-5 text-white" fill={isRecording ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-            <circle cx="12" cy="12" r="8" strokeWidth={2} />
-          </svg>
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            {isRecording ? 'Stop Recording' : 'Start Recording'}
-          </span>
-        </button>
+            <button
+              onClick={() => isRecording ? onStopRecording?.() : onStartRecording?.()}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+              title={isRecording ? 'Stop recording' : 'Start recording'}
+            >
+              <svg className="w-5 h-5 text-white" fill={isRecording ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                <circle cx="12" cy="12" r="8" strokeWidth={2} />
+              </svg>
+              <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </span>
+            </button>
+          </>
+        )}
 
-        {/* Divider */}
-        <div className="h-6 w-px bg-gray-700" />
+        {/* Divider — only shown for tutors */}
+        {isTutor && <div className="h-6 w-px bg-gray-700/50" />}
 
-        {/* Group 4: Settings & End Call */}
-        <button
-          onClick={onToggleSettings}
-          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors relative group"
-          title="Settings"
-        >
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Settings
-          </span>
-        </button>
+        {/* Group 4: Settings & Analytics (tutors only) & End Call */}
+        {isTutor && (
+          <>
+            <button
+              onClick={onToggleSettings}
+              className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+              title="Settings"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Settings
+              </span>
+            </button>
 
-        <button
-          onClick={toggleSidebar}
-          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors relative group"
-          title="Analytics"
-        >
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Analytics
-          </span>
-        </button>
+            <button
+              onClick={toggleSidebar}
+              className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+              title="Analytics"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Analytics
+              </span>
+            </button>
+          </>
+        )}
 
         <button
           onClick={handleEndClick}
           disabled={isEnding}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative group ${
-            isEnding ? 'bg-red-800 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500'
+          className={`px-6 py-2.5 rounded-full flex items-center justify-center gap-2 transition-all duration-200 relative group font-semibold text-sm ${
+            isEnding ? 'bg-red-800 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500 hover:shadow-lg hover:shadow-red-600/50'
           }`}
           title="End call"
         >
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            End Call
-          </span>
+          <span className="text-white">End</span>
         </button>
 
         {/* Latency Badge */}

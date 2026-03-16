@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { listSessions as loadLocalSessions } from '@/lib/persistence/SessionStorage';
 
 interface Session {
   id: string;
@@ -13,16 +15,32 @@ interface Session {
   status?: 'completed' | 'active' | 'abandoned';
 }
 
+interface StudentInsight {
+  name: string;
+  sessions: Session[];
+  totalSessions: number;
+  avgEngagement: number;
+  trend: 'improving' | 'declining' | 'stable';
+  sparklineData: { value: number }[];
+}
+
 interface DashboardStats {
   totalSessions: number;
   avgEngagement: number;
   totalTeachingTime: string;
   activeStudents: number;
-  engagementTrend: number[];
+  engagementTrend: { name: string; engagement: number }[];
+}
+
+interface ComparisonState {
+  isOpen: boolean;
+  selectedIds: string[];
 }
 
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+  const [studentInsights, setStudentInsights] = useState<StudentInsight[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalSessions: 0,
     avgEngagement: 0,
@@ -32,28 +50,95 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<ComparisonState>({
+    isOpen: false,
+    selectedIds: [],
+  });
 
   useEffect(() => {
     async function loadSessions() {
       try {
         setLoading(true);
-        const response = await fetch('/api/sessions');
-        if (!response.ok) throw new Error('Failed to fetch sessions');
-        const data = await response.json();
+        let transformedSessions: Session[] = [];
 
-        // Transform and sort sessions
-        const transformedSessions: Session[] = (data.sessions || []).map((s: any) => ({
-          id: s.id,
-          date: s.startTime || s.date,
-          subject: s.config?.subject || 'Unknown',
-          studentName: s.config?.studentName || 'Unknown',
-          duration: s.duration || 0,
-          engagementScore: Math.round(s.engagementScore || 0),
-          status: s.status || 'completed',
-        }));
+        // Try API first
+        try {
+          const response = await fetch('/api/sessions');
+          if (response.ok) {
+            const data = await response.json();
+            transformedSessions = (data.sessions || []).map((s: any) => ({
+              id: s.id,
+              date: s.startTime || s.date,
+              subject: s.config?.subject || 'Unknown',
+              studentName: s.config?.studentName || 'Unknown',
+              duration: s.duration || 0,
+              engagementScore: Math.round(s.engagementScore || 0),
+              status: s.status || 'completed',
+            }));
+          }
+        } catch (apiErr) {
+          console.warn('API fetch failed, trying IndexedDB');
+        }
+
+        // Fallback to IndexedDB if API returns no sessions
+        if (transformedSessions.length === 0) {
+          try {
+            const localSessions = await loadLocalSessions();
+            transformedSessions = localSessions.map((s: any) => ({
+              id: s.id,
+              date: s.startTime || s.date,
+              subject: s.config?.subject || 'Unknown',
+              studentName: s.config?.studentName || 'Unknown',
+              duration: s.endTime ? (s.endTime - s.startTime) : 0,
+              engagementScore: Math.round(s.metricsHistory?.[s.metricsHistory.length - 1]?.engagement || 0),
+              status: s.status || 'completed',
+            }));
+          } catch (dbErr) {
+            console.warn('IndexedDB fetch also failed');
+          }
+        }
 
         transformedSessions.sort((a, b) => b.date - a.date);
         setSessions(transformedSessions);
+        setFilteredSessions(transformedSessions);
+
+        // Calculate student insights
+        const studentMap = new Map<string, Session[]>();
+        transformedSessions.forEach((session) => {
+          const existing = studentMap.get(session.studentName) || [];
+          studentMap.set(session.studentName, [...existing, session]);
+        });
+
+        const insights: StudentInsight[] = Array.from(studentMap.entries()).map(([name, studentSessions]) => {
+          const sorted = [...studentSessions].sort((a, b) => a.date - b.date);
+          const avgEng = Math.round(
+            sorted.reduce((sum, s) => sum + s.engagementScore, 0) / sorted.length
+          );
+
+          // Calculate trend
+          let trend: 'improving' | 'declining' | 'stable' = 'stable';
+          if (sorted.length >= 2) {
+            const recent = sorted.slice(-3).map(s => s.engagementScore);
+            const older = sorted.slice(0, Math.min(3, sorted.length - 3)).map(s => s.engagementScore);
+            const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+            const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : recentAvg;
+
+            if (recentAvg > olderAvg + 5) trend = 'improving';
+            else if (recentAvg < olderAvg - 5) trend = 'declining';
+          }
+
+          return {
+            name,
+            sessions: sorted,
+            totalSessions: sorted.length,
+            avgEngagement: avgEng,
+            trend,
+            sparklineData: sorted.map(s => ({ value: s.engagementScore })),
+          };
+        });
+
+        setStudentInsights(insights);
 
         // Calculate stats
         if (transformedSessions.length > 0) {
@@ -62,14 +147,16 @@ export default function DashboardPage() {
             transformedSessions.reduce((sum, s) => sum + s.engagementScore, 0) /
               transformedSessions.length
           );
-          const uniqueStudents = new Set(transformedSessions.map((s) => s.studentName)).size;
-          const engagementTrend = transformedSessions.slice(0, 10).map((s) => s.engagementScore);
+          const engagementTrend = transformedSessions.slice(0, 10).map((s, idx) => ({
+            name: `Session ${idx + 1}`,
+            engagement: s.engagementScore,
+          }));
 
           setStats({
             totalSessions: transformedSessions.length,
             avgEngagement: avgEng,
             totalTeachingTime: formatDuration(totalTime),
-            activeStudents: uniqueStudents,
+            activeStudents: studentMap.size,
             engagementTrend: engagementTrend.reverse(),
           });
         }
@@ -106,6 +193,19 @@ export default function DashboardPage() {
     return 'Needs improvement';
   };
 
+  // Helper function to get engagement color
+  const getEngagementColor = (score: number): string => {
+    if (score >= 70) return 'text-green-600';
+    if (score >= 40) return 'text-amber-600';
+    return 'text-red-600';
+  };
+
+  const getEngagementDotColor = (score: number): string => {
+    if (score >= 70) return 'bg-green-500';
+    if (score >= 40) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
+
   // Helper function to compute trends
   const computeTrends = () => {
     if (sessions.length < 2) return { trend: 'stable', description: '' };
@@ -132,55 +232,133 @@ export default function DashboardPage() {
 
   const { description: trendDescription } = computeTrends();
 
+  // Handle student filter
+  const handleStudentFilter = (studentName: string | null) => {
+    setSelectedStudent(studentName);
+    if (studentName) {
+      setFilteredSessions(sessions.filter(s => s.studentName === studentName));
+    } else {
+      setFilteredSessions(sessions);
+    }
+  };
+
+  // Handle comparison selection
+  const toggleComparisonSelection = (sessionId: string) => {
+    setComparison(prev => {
+      const newSelectedIds = prev.selectedIds.includes(sessionId)
+        ? prev.selectedIds.filter(id => id !== sessionId)
+        : [...prev.selectedIds, sessionId];
+      return { ...prev, selectedIds: newSelectedIds };
+    });
+  };
+
+  const getLastSessionInfo = () => {
+    if (sessions.length === 0) return null;
+    const lastSession = sessions[0];
+    const timeAgo = getRelativeTime(lastSession.date);
+    return {
+      studentName: lastSession.studentName,
+      timeAgo,
+      engagement: lastSession.engagementScore,
+    };
+  };
+
+  const lastSession = getLastSessionInfo();
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="card mx-4 sm:mx-6 lg:mx-8 mt-6 mb-8 sticky top-6 z-40">
+      <header className="card mx-4 sm:mx-6 lg:mx-8 mt-6 mb-8 sticky top-6 z-40 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--card-border)] pb-6">
-          <div>
-            <h1 className="text-4xl font-bold text-[var(--foreground)]">Tutor Dashboard</h1>
-            <p className="text-[var(--muted)] text-sm mt-2">
-              You've completed {stats.totalSessions} session{stats.totalSessions !== 1 ? 's' : ''} with an average engagement of {stats.avgEngagement}%
-            </p>
+          <div className="flex-1">
+            <div className="flex items-baseline gap-3 mb-1">
+              <h1 className="text-4xl font-bold text-[var(--foreground)]">Dashboard</h1>
+              <span className="text-[var(--accent)] font-semibold text-lg">Nerdy</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 mt-2">
+              <p className="text-[var(--muted-light)] text-sm">{today}</p>
+              <p className="text-[var(--muted)] text-sm">
+                {stats.totalSessions} session{stats.totalSessions !== 1 ? 's' : ''} • {stats.avgEngagement}% avg engagement
+              </p>
+            </div>
           </div>
-          <Link
-            href="/session"
-            className="inline-block bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 hover:shadow-lg"
-          >
-            New Session
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 border border-[var(--card-border)] hover:bg-[var(--card-hover)] text-[var(--foreground)] font-medium py-2 px-4 rounded-lg transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h2a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h2a1 1 0 001-1V9m-9 13l9 0" />
+              </svg>
+              Home
+            </Link>
+            <Link
+              href="/session"
+              className="inline-flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Session
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isEmpty ? (
-          <div className="card flex flex-col items-center justify-center min-h-96 p-8">
+          <div className="card flex flex-col items-center justify-center min-h-96 p-12 bg-gradient-to-br from-[var(--card)] to-[var(--card-hover)]">
             <div className="text-center">
-              <svg
-                className="w-16 h-16 mx-auto text-[var(--muted-light)] mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 6.253v13m0-13C6.5 6.253 2 10.753 2 16.5S6.5 26.747 12 26.747s10-4.5 10-10.247S17.5 6.253 12 6.253z"
-                />
-              </svg>
-              <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-2">No sessions yet</h2>
-              <p className="text-[var(--muted)] mb-6">No sessions yet. Start your first tutoring session to see analytics here.</p>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[var(--accent-light)] flex items-center justify-center">
+                <svg
+                  className="w-10 h-10 text-[var(--accent)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m0 0h6M6 12a6 6 0 11-12 0 6 6 0 0112 0z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-[var(--foreground)] mb-3">Start your first session</h2>
+              <p className="text-[var(--muted-light)] mb-8 max-w-sm">Get real-time analytics on engagement, eye contact, and speaking patterns to improve your tutoring skills.</p>
               <Link
                 href="/session"
-                className="inline-block bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
+                className="inline-flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105 transform"
               >
-                Start First Session
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m0 0l-2-1m2 1v2.5M14 4l-2 1m0 0l-2-1m2 1v2.5" />
+                </svg>
+                Start Session Now
               </Link>
             </div>
           </div>
         ) : (
           <>
+            {/* Recent Activity Welcome Section */}
+            {lastSession && (
+              <div className="card p-6 mb-8 bg-gradient-to-r from-[var(--accent-subtle)] to-transparent border border-[var(--accent-light)] shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">👋</span>
+                  <h3 className="font-semibold text-[var(--foreground)]">Welcome back!</h3>
+                </div>
+                <p className="text-[var(--foreground)] text-base leading-relaxed">
+                  Your last session was {lastSession.timeAgo} with{' '}
+                  <span className="font-semibold text-[var(--accent)]">{lastSession.studentName}</span>. Engagement score was{' '}
+                  <span className={`font-bold px-2 py-0.5 rounded ${getEngagementColor(lastSession.engagement)} bg-white bg-opacity-50`}>
+                    {lastSession.engagement}%
+                  </span>
+                  .
+                </p>
+              </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <StatCard
@@ -213,48 +391,126 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Engagement Trend Chart */}
+            {/* Engagement Trend Chart with Recharts */}
             {stats.engagementTrend.length > 0 && (
-              <div className="card p-6 mb-8">
-                <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">Engagement Trend (Last 10 Sessions)</h2>
-                <EngagementChart data={stats.engagementTrend} />
+              <div className="card p-6 mb-8 shadow-sm hover:shadow-md transition-shadow">
+                <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1">Engagement Trend</h2>
+                <p className="text-sm text-[var(--muted-light)] mb-6">Last {stats.engagementTrend.length} sessions</p>
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={stats.engagementTrend} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="engagementGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--info, #3B82F6)" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="var(--info, #3B82F6)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" vertical={false} />
+                      <XAxis dataKey="name" stroke="var(--muted-light)" style={{ fontSize: '12px' }} />
+                      <YAxis stroke="var(--muted-light)" domain={[0, 100]} style={{ fontSize: '12px' }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--card)',
+                          border: '1px solid var(--card-border)',
+                          borderRadius: '8px',
+                          color: 'var(--foreground)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        }}
+                        formatter={(value) => [`${value}%`, 'Engagement']}
+                        cursor={{ stroke: 'var(--card-border)', strokeWidth: 2 }}
+                      />
+                      <ReferenceLine y={60} stroke="var(--card-border)" strokeDasharray="4" label={{ value: 'Target', position: 'right', fill: 'var(--muted-light)', fontSize: 11 }} />
+                      <Line
+                        type="monotone"
+                        dataKey="engagement"
+                        stroke="var(--info, #3B82F6)"
+                        fill="url(#engagementGradient)"
+                        dot={{ fill: 'var(--info, #3B82F6)', r: 4, strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: 'var(--info, #3B82F6)' }}
+                        strokeWidth={3}
+                        isAnimationActive={true}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Student Insights Section */}
+            {studentInsights.length > 0 && (
+              <div className="card overflow-hidden mb-8 shadow-sm hover:shadow-md transition-shadow">
+                <div className="px-6 py-4 border-b border-[var(--card-border)] bg-gradient-to-r from-[var(--card-hover)] to-transparent">
+                  <h2 className="text-lg font-semibold text-[var(--foreground)]">Student Insights</h2>
+                  <p className="text-xs text-[var(--muted-light)] mt-1">{studentInsights.length} student{studentInsights.length !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="divide-y divide-[var(--card-border)]">
+                  {studentInsights.map((insight) => (
+                    <StudentInsightRow
+                      key={insight.name}
+                      insight={insight}
+                      isSelected={selectedStudent === insight.name}
+                      onSelect={() => handleStudentFilter(selectedStudent === insight.name ? null : insight.name)}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Session History Table */}
-            <div className="card overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-[var(--card-border)]">
-                <h2 className="text-xl font-semibold text-[var(--foreground)]">Session History</h2>
+            <div className="card overflow-hidden mb-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="px-6 py-4 border-b border-[var(--card-border)] bg-gradient-to-r from-[var(--card-hover)] to-transparent flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-lg font-semibold text-[var(--foreground)]">Session History</h2>
+                    <span className="text-sm font-medium text-[var(--muted-light)] bg-[var(--card)] px-2.5 py-1 rounded-full">{filteredSessions.length}</span>
+                  </div>
+                  {selectedStudent && (
+                    <p className="text-sm text-[var(--muted-light)] mt-1">
+                      Filtered for <span className="font-semibold text-[var(--foreground)]">{selectedStudent}</span>
+                      <button
+                        onClick={() => handleStudentFilter(null)}
+                        className="ml-3 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-[var(--card-hover)] border-b border-[var(--card-border)]">
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                    <tr className="bg-gradient-to-r from-[var(--card-hover)] to-transparent border-b-2 border-[var(--card-border)]">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Date/Time
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Subject
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Student
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Duration
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Engagement
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--muted-light)] uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--card-border)]">
-                    {sessions.map((session, index) => (
-                      <SessionRow key={session.id} session={session} isFirst={index === 0} />
+                    {filteredSessions.map((session, index) => (
+                      <SessionRow
+                        key={session.id}
+                        session={session}
+                        isFirst={index === 0 && !selectedStudent}
+                        engagementDotColor={getEngagementDotColor(session.engagementScore)}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -262,8 +518,13 @@ export default function DashboardPage() {
 
               {/* Mobile Card View */}
               <div className="md:hidden divide-y divide-[var(--card-border)]">
-                {sessions.map((session, index) => (
-                  <SessionCard key={session.id} session={session} isFirst={index === 0} />
+                {filteredSessions.map((session, index) => (
+                  <SessionCard
+                    key={session.id}
+                    session={session}
+                    isFirst={index === 0 && !selectedStudent}
+                    engagementDotColor={getEngagementDotColor(session.engagementScore)}
+                  />
                 ))}
               </div>
             </div>
@@ -302,15 +563,24 @@ function StatCard({
   descriptor: string;
   borderColor: string;
 }) {
+  const bgColorMap: { [key: string]: string } = {
+    'border-t-blue-500': 'from-blue-50',
+    'border-t-green-500': 'from-green-50',
+    'border-t-purple-500': 'from-purple-50',
+    'border-t-amber-500': 'from-amber-50',
+  };
+
+  const bgColor = bgColorMap[borderColor] || 'from-blue-50';
+
   return (
-    <div className={`card border-t-2 ${borderColor} p-6`}>
+    <div className={`card border-t-2 ${borderColor} p-6 bg-gradient-to-br ${bgColor} to-transparent hover:shadow-md transition-shadow duration-200`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[var(--muted)] text-sm font-semibold uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-bold text-[var(--foreground)] mt-2">{value}</p>
-          <p className="text-[var(--muted)] text-xs mt-2">{descriptor}</p>
+          <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">{label}</p>
+          <p className="text-4xl font-bold text-[var(--foreground)] mt-3">{value}</p>
+          <p className="text-[var(--muted-light)] text-xs mt-3">{descriptor}</p>
         </div>
-        <span className="text-3xl">{icon}</span>
+        <div className="text-5xl opacity-60">{icon}</div>
       </div>
     </div>
   );
@@ -459,9 +729,11 @@ function EngagementChart({ data }: { data: number[] }) {
 function SessionRow({
   session,
   isFirst,
+  engagementDotColor,
 }: {
   session: Session;
   isFirst: boolean;
+  engagementDotColor: string;
 }) {
   const engagementColor =
     session.engagementScore >= 70
@@ -477,27 +749,33 @@ function SessionRow({
         ? 'Good'
         : 'Needs improvement';
 
+  const statusColor =
+    session.status === 'completed' ? 'bg-green-50 text-green-700 border border-green-200' :
+    session.status === 'active' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+    'bg-gray-50 text-gray-700 border border-gray-200';
+
   return (
     <Link href={`/analytics/${session.id}`}>
-      <tr className="hover:bg-[var(--card-hover)] transition-colors cursor-pointer border-b border-[var(--card-border)] last:border-b-0">
+      <tr className="hover:bg-[var(--card-hover)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0 hover:shadow-sm">
         <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">
           <div className="flex items-center gap-2">
-            {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">Most recent</span>}
+            {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200 font-medium">Recent</span>}
             {formatDate(session.date)}
           </div>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">{session.subject}</td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--foreground)]">{session.subject}</td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">{session.studentName}</td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted)]">
           {formatDuration(session.duration)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${engagementColor}`}>
-            {session.engagementScore}% {engagementLabel}
+          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${engagementColor}`}>
+            <span className={`w-2 h-2 rounded-full ${engagementDotColor}`} />
+            {session.engagementScore}%
           </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold capitalize ${statusColor}`}>
             {session.status || 'Completed'}
           </span>
         </td>
@@ -509,9 +787,11 @@ function SessionRow({
 function SessionCard({
   session,
   isFirst,
+  engagementDotColor,
 }: {
   session: Session;
   isFirst: boolean;
+  engagementDotColor: string;
 }) {
   const engagementColor =
     session.engagementScore >= 70
@@ -527,36 +807,42 @@ function SessionCard({
         ? 'Good'
         : 'Needs improvement';
 
+  const statusColor =
+    session.status === 'completed' ? 'bg-green-50 text-green-700 border border-green-200' :
+    session.status === 'active' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+    'bg-gray-50 text-gray-700 border border-gray-200';
+
   return (
     <Link href={`/analytics/${session.id}`}>
-      <div className="p-4 hover:bg-[var(--card-hover)] transition-colors cursor-pointer">
+      <div className="p-4 hover:bg-[var(--card-hover)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0">
         <div className="flex justify-between items-start mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm text-[var(--muted)]">{formatDate(session.date)}</p>
-              {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">Most recent</span>}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs text-[var(--muted-light)]">{formatDate(session.date)}</p>
+              {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium border border-blue-200">Recent</span>}
             </div>
             <p className="font-semibold text-[var(--foreground)]">{session.subject}</p>
           </div>
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${engagementColor}`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${engagementColor}`}>
+            <span className={`w-2 h-2 rounded-full ${engagementDotColor}`} />
             {session.engagementScore}%
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="grid grid-cols-2 gap-3 text-xs mb-3">
           <div>
-            <p className="text-[var(--muted)]">Student</p>
+            <p className="text-[var(--muted-light)] font-medium">Student</p>
             <p className="text-[var(--foreground)]">{session.studentName}</p>
           </div>
           <div>
-            <p className="text-[var(--muted)]">Duration</p>
+            <p className="text-[var(--muted-light)] font-medium">Duration</p>
             <p className="text-[var(--foreground)]">{formatDuration(session.duration)}</p>
           </div>
-          <div>
-            <p className="text-[var(--muted)]">Engagement</p>
-            <p className={`text-sm font-medium ${engagementColor.replace(/px/, '').replace(/py/, '')}`}>
-              {engagementLabel}
-            </p>
-          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${statusColor}`}>
+            {session.status || 'Completed'}
+          </span>
+          <span className="text-xs text-[var(--muted-light)]">{engagementLabel}</span>
         </div>
       </div>
     </Link>
@@ -602,4 +888,135 @@ function formatDuration(ms: number): string {
   } else {
     return `${hours}h ${remainingMinutes}m`;
   }
+}
+
+function getRelativeTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours === 0) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return diffMins === 0 ? 'just now' : `${diffMins}m ago`;
+    }
+    return `${diffHours}h ago`;
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+}
+
+function StudentInsightRow({
+  insight,
+  isSelected,
+  onSelect,
+}: {
+  insight: StudentInsight;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const trendEmoji =
+    insight.trend === 'improving'
+      ? '📈'
+      : insight.trend === 'declining'
+        ? '📉'
+        : '➡️';
+
+  const trendColor =
+    insight.trend === 'improving'
+      ? 'text-green-600'
+      : insight.trend === 'declining'
+        ? 'text-red-600'
+        : 'text-amber-600';
+
+  const trendLabel =
+    insight.trend === 'improving'
+      ? 'Improving'
+      : insight.trend === 'declining'
+        ? 'Declining'
+        : 'Stable';
+
+  const avatarBg = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-pink-100', 'bg-yellow-100'];
+  const avatarBgColor = avatarBg[insight.name.length % avatarBg.length];
+  const initials = insight.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full px-6 py-5 text-left hover:bg-[var(--card-hover)] transition-all duration-150 ${
+        isSelected ? 'bg-[var(--card-hover)]' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <div className={`w-10 h-10 rounded-full ${avatarBgColor} flex items-center justify-center font-semibold text-sm text-gray-700`}>
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-[var(--foreground)]">{insight.name}</h3>
+            <p className="text-sm text-[var(--muted-light)] mt-0.5">
+              {insight.totalSessions} session{insight.totalSessions !== 1 ? 's' : ''} • {insight.avgEngagement}% avg
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <p className={`text-sm font-semibold ${trendColor}`}>
+              {trendEmoji}
+            </p>
+            <p className="text-xs text-[var(--muted-light)]">{trendLabel}</p>
+          </div>
+          <div className="w-20 h-6">
+            <SparklineChart data={insight.sparklineData} />
+          </div>
+          {isSelected && (
+            <div className="text-[var(--accent)]">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function SparklineChart({ data }: { data: { value: number }[] }) {
+  if (data.length === 0) return null;
+
+  const width = 96;
+  const height = 32;
+  const padding = 2;
+  const chartWidth = width - 2 * padding;
+  const chartHeight = height - 2 * padding;
+
+  const maxValue = 100;
+  const minValue = 0;
+
+  const points = data.map((d, index) => {
+    const x = padding + (index / (data.length - 1 || 1)) * chartWidth;
+    const y = padding + chartHeight - ((d.value - minValue) / (maxValue - minValue)) * chartHeight;
+    return { x, y };
+  });
+
+  const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <svg width={width} height={height} className="w-full h-full">
+      <polyline points={polylinePoints} fill="none" stroke="var(--info, #3B82F6)" strokeWidth="1.5" />
+      {points.map((point, index) => (
+        <circle key={`point-${index}`} cx={point.x} cy={point.y} r="1.5" fill="var(--info, #3B82F6)" />
+      ))}
+    </svg>
+  );
 }
