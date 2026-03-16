@@ -5,6 +5,10 @@ import { StudentState } from '@/lib/metrics-engine/types';
 
 interface VideoTileProps {
   name: string;
+  /** MediaStream to display — VideoTile manages its own playback internally */
+  stream?: MediaStream | null;
+  /** Fallback video src URL (e.g., demo video) */
+  videoSrc?: string;
   isSpeaking?: boolean;
   eyeContactScore?: number;
   isMuted?: boolean;
@@ -21,6 +25,8 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
   function VideoTile(
     {
       name,
+      stream,
+      videoSrc,
       isSpeaking = false,
       eyeContactScore,
       isMuted = false,
@@ -34,13 +40,13 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
     },
     forwardedRef
   ) {
-    const localVideoRef = useRef<HTMLVideoElement | null>(null);
+    const internalVideoRef = useRef<HTMLVideoElement | null>(null);
     const [videoActive, setVideoActive] = useState(false);
 
-    // Merge forwarded ref with local ref
+    // Merge forwarded ref with internal ref
     const setVideoRef = useCallback(
       (el: HTMLVideoElement | null) => {
-        localVideoRef.current = el;
+        internalVideoRef.current = el;
         if (typeof forwardedRef === 'function') {
           forwardedRef(el);
         } else if (forwardedRef) {
@@ -50,47 +56,90 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
       [forwardedRef]
     );
 
-    // Detect video active state using events + slow fallback poll
+    // ─── CORE FIX: Attach stream directly inside VideoTile via prop ───
+    // This eliminates the fragile ref-forwarding chain for stream attachment.
+    // The parent just passes `stream={localStream}` and VideoTile handles everything.
     useEffect(() => {
-      const el = localVideoRef.current;
+      const el = internalVideoRef.current;
       if (!el) return;
 
-      const markActive = () => {
-        // Only mark active when video actually has pixel dimensions
-        if (el.videoWidth > 0 && el.videoHeight > 0) {
-          setVideoActive(true);
+      if (stream) {
+        // Attach MediaStream
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+          // Clear any old src
+          el.removeAttribute('src');
         }
-      };
-      const markInactive = () => setVideoActive(false);
-
-      // Event-driven detection (much cheaper than 50ms polling)
-      el.addEventListener('playing', markActive);
-      el.addEventListener('loadeddata', markActive);
-      el.addEventListener('resize', markActive);
-      el.addEventListener('emptied', markInactive);
-
-      // Slow fallback poll (1s) for edge cases where events don't fire
-      const fallback = setInterval(() => {
-        if (el.srcObject && el.videoWidth > 0 && el.videoHeight > 0 && !el.paused) {
-          setVideoActive(true);
-        } else if (!el.srcObject && !el.src) {
-          setVideoActive(false);
+      } else if (videoSrc) {
+        // Attach URL source (demo video)
+        if (el.src !== videoSrc) {
+          el.srcObject = null;
+          el.src = videoSrc;
+          el.loop = true;
+          el.muted = true;
         }
-      }, 1000);
-
-      // Check immediately
-      if (el.srcObject && el.videoWidth > 0 && el.videoHeight > 0) {
-        setVideoActive(true);
       }
 
-      return () => {
-        el.removeEventListener('playing', markActive);
-        el.removeEventListener('loadeddata', markActive);
-        el.removeEventListener('resize', markActive);
-        el.removeEventListener('emptied', markInactive);
-        clearInterval(fallback);
+      // Always try to play — handles autoplay restrictions, re-mounts, etc.
+      if ((stream || videoSrc) && el.paused) {
+        el.play().catch(() => {});
+      }
+    }, [stream, videoSrc]);
+
+    // Persistent play retry — some browsers (iPad Safari) need repeated play() attempts
+    useEffect(() => {
+      const el = internalVideoRef.current;
+      if (!el) return;
+
+      const tryPlay = () => {
+        if (!el.srcObject && !el.src) return;
+        if (el.paused) {
+          el.play().catch(() => {});
+        }
+        // Check if video is rendering frames
+        if (el.videoWidth > 0 && el.videoHeight > 0 && !el.paused) {
+          setVideoActive(true);
+        }
       };
-    }, []);
+
+      // Poll every 300ms until video is playing — then slow down to 2s
+      let fastInterval = setInterval(tryPlay, 300);
+      let slowInterval: ReturnType<typeof setInterval> | null = null;
+
+      const onPlaying = () => {
+        if (el.videoWidth > 0) {
+          setVideoActive(true);
+          // Switch to slow poll once playing
+          clearInterval(fastInterval);
+          if (!slowInterval) {
+            slowInterval = setInterval(() => {
+              // Keep checking in case video stops (e.g., track disabled)
+              if (el.videoWidth > 0 && !el.paused) {
+                setVideoActive(true);
+              } else if (!el.srcObject && !el.src) {
+                setVideoActive(false);
+              }
+            }, 2000);
+          }
+        }
+      };
+
+      el.addEventListener('playing', onPlaying);
+      el.addEventListener('loadeddata', onPlaying);
+      el.addEventListener('resize', onPlaying);
+      el.addEventListener('emptied', () => setVideoActive(false));
+
+      // Check immediately
+      tryPlay();
+
+      return () => {
+        el.removeEventListener('playing', onPlaying);
+        el.removeEventListener('loadeddata', onPlaying);
+        el.removeEventListener('resize', onPlaying);
+        clearInterval(fastInterval);
+        if (slowInterval) clearInterval(slowInterval);
+      };
+    }, [stream, videoSrc]); // Re-run when stream/src changes (handles re-mounts)
 
     // Engagement color — used for a subtle bottom accent line
     const getEngagementColor = () => {
@@ -135,25 +184,21 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         } ${className}`}
         style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px', minHeight: '200px' }}
       >
-        {/* Video element — z-10 so it renders ABOVE the placeholder */}
+        {/*
+          Video at z-0, ALWAYS full opacity.
+          Some browsers (iPad Safari) don't process frames for opacity-0 elements.
+          The placeholder sits ON TOP and fades away when video is active.
+        */}
         <video
           ref={setVideoRef}
           autoPlay
           playsInline
           muted
-          onLoadedData={() => {
-            const el = localVideoRef.current;
-            if (el && el.videoWidth > 0) setVideoActive(true);
-          }}
-          onPlaying={() => {
-            const el = localVideoRef.current;
-            if (el && el.videoWidth > 0) setVideoActive(true);
-          }}
-          className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 ${videoActive ? 'opacity-100' : 'opacity-0'}`}
+          className="absolute inset-0 w-full h-full object-cover z-0"
         />
 
-        {/* Placeholder — z-0, fades out when video is active */}
-        <div className={`absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-opacity duration-300 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {/* Placeholder — z-10 (ON TOP of video), fades out when video is active */}
+        <div className={`absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-opacity duration-300 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="flex flex-col items-center gap-3">
               {/* Avatar circle with gradient */}
               <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-lg`}>
@@ -211,7 +256,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
             </div>
 
             {/* Top-right: eye contact dot + connection quality (compact) */}
-            <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+            <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
               {eyeContactScore !== undefined && (
                 <div className={`w-2.5 h-2.5 rounded-full ${getEyeContactColor()} transition-colors duration-500`} />
               )}
@@ -226,7 +271,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
             {/* Top-left: student state badge (only when not engaged) */}
             {studentState && studentState !== 'engaged' && (
-              <div className="absolute top-3 left-3 z-10">
+              <div className="absolute top-3 left-3 z-20">
                 {(() => {
                   const stateConfig: Record<StudentState, { emoji: string; label: string; bg: string }> = {
                     engaged: { emoji: '', label: '', bg: '' },
@@ -248,7 +293,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
             {/* Active speaker label — small top-center pill */}
             {isActiveSpeaker && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
                 <div className="bg-blue-500/70 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   <span className="text-[10px] font-semibold text-white uppercase tracking-wide">Speaking</span>

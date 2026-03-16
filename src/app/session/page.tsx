@@ -128,7 +128,7 @@ function SessionPageInner() {
   } = useMediaStream();
 
   // Screen sharing
-  const { isSharing, screenStream, startSharing, stopSharing } = useScreenShare();
+  const { isSharing, startSharing, stopSharing } = useScreenShare();
 
   // Recording
   const {
@@ -254,26 +254,6 @@ function SessionPageInner() {
     }
   }, [localStream]);
 
-  // Keep remote video element in sync with remote stream (handles ref changes from re-renders)
-  useEffect(() => {
-    if (!remoteStream) return;
-    const attachRemote = () => {
-      const el = remoteVideoRef.current;
-      if (el && el.srcObject !== remoteStream) {
-        el.srcObject = remoteStream;
-        el.play().catch(() => {});
-      }
-    };
-    attachRemote();
-    const interval = setInterval(attachRemote, 500);
-    const onPlaying = () => clearInterval(interval);
-    remoteVideoRef.current?.addEventListener('playing', onPlaying);
-    return () => {
-      clearInterval(interval);
-      remoteVideoRef.current?.removeEventListener('playing', onPlaying);
-    };
-  }, [remoteStream]);
-
   // Play remote audio through a separate (unmuted) audio element for reliable playback
   useEffect(() => {
     if (!remoteStream || !remoteAudioRef.current) return;
@@ -292,28 +272,6 @@ function SessionPageInner() {
     };
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep local video element in sync with stream (handles ref timing issues)
-  useEffect(() => {
-    if (!localStream) return;
-    const attachStream = () => {
-      const el = localVideoRef.current;
-      if (el && el.srcObject !== localStream) {
-        el.srcObject = localStream;
-        // Explicitly call play() — some browsers won't autoplay even with the attribute
-        el.play().catch(() => {});
-      }
-    };
-    // Try immediately + retry on interval until attached and playing
-    attachStream();
-    const interval = setInterval(attachStream, 500);
-    const onPlaying = () => clearInterval(interval);
-    localVideoRef.current?.addEventListener('playing', onPlaying);
-    return () => {
-      clearInterval(interval);
-      localVideoRef.current?.removeEventListener('playing', onPlaying);
-    };
-  }, [localStream]);
 
   // Verify room token if provided
   useEffect(() => {
@@ -341,9 +299,6 @@ function SessionPageInner() {
       role: role as 'tutor' | 'student',
       onRemoteStream: (stream) => {
         setRemoteStream(stream);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = stream;
-        }
       },
       onPeerState: (state: ConnectionState) => {
         setPeerConnected(state === 'connected');
@@ -363,6 +318,16 @@ function SessionPageInner() {
         // Handle incoming data channel messages (chat, reactions)
         if (msg.type === 'chat' && typeof msg.data === 'object' && msg.data !== null) {
           // Could dispatch to chat — for now just log
+        }
+        // Session end: tutor ended the session — navigate student to analytics
+        if (msg.type === 'end-session' && typeof msg.data === 'object' && msg.data !== null) {
+          const endData = msg.data as { sessionId: string };
+          const sid = endData.sessionId || useSessionStore.getState().sessionId;
+          setCallState('ended');
+          endSession();
+          peerRef.current?.stop();
+          router.push(`/analytics/${sid}`);
+          return; // Don't process further messages
         }
         // Timer sync: student receives tutor's startTime
         if (msg.type === 'sync' && typeof msg.data === 'object' && msg.data !== null) {
@@ -394,7 +359,7 @@ function SessionPageInner() {
       setPeerConnected(false);
       setRtcPeerConnection(null);
     };
-  }, [isRoomMode, roomId, role, localStream, streamReady]);
+  }, [isRoomMode, roomId, role, localStream, streamReady, setCallState, endSession, router]);
 
   // Timer sync: tutor sends startTime to student when peer connects
   useEffect(() => {
@@ -413,55 +378,8 @@ function SessionPageInner() {
     return () => clearTimeout(timeout);
   }, [peerConnected, role]);
 
-  // Solo/demo mode: load student demo video
-  useEffect(() => {
-    if (isRoomMode) return;
-    const video = remoteVideoRef.current;
-    if (!video) return;
-
-    video.src = '/demo/student-sample.mp4';
-    video.loop = true;
-    video.muted = true;
-    video.play().catch(() => {
-      // No demo video — animated placeholder
-      const canvas = document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
-      const ctx = canvas.getContext('2d')!;
-      let rafId: number;
-
-      const draw = () => {
-        const t = Date.now() / 1000;
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(0, 0, 640, 480);
-        const bobY = Math.sin(t * 0.8) * 5;
-        ctx.beginPath();
-        ctx.arc(320, 200 + bobY, 60, 0, Math.PI * 2);
-        ctx.fillStyle = '#4a5568';
-        ctx.fill();
-        const blink = Math.sin(t * 3) > 0.95;
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(298, 192 + bobY, 12, blink ? 1 : 6);
-        ctx.fillRect(330, 192 + bobY, 12, blink ? 1 : 6);
-        ctx.beginPath();
-        ctx.arc(320, 218 + bobY, 8, 0, Math.PI);
-        ctx.fillStyle = '#2d3748';
-        ctx.fill();
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Student (Placeholder)', 320, 380);
-        rafId = requestAnimationFrame(draw);
-      };
-      draw();
-
-      const canvasStream = canvas.captureStream(15);
-      video.srcObject = canvasStream;
-      video.play().catch(() => {});
-
-      return () => cancelAnimationFrame(rafId);
-    });
-  }, [isRoomMode]);
+  // Solo/demo mode: VideoTile now handles demo video via demoVideoSrc prop
+  // passed through VideoLayout — no manual ref manipulation needed.
 
   // Auto-save to IndexedDB + Supabase
   const lastSyncedIndexRef = useRef(0);
@@ -563,6 +481,15 @@ function SessionPageInner() {
     const state = useSessionStore.getState();
     const sid = state.sessionId;
 
+    // Broadcast session end to all peers BEFORE stopping connection
+    if (peerRef.current && isRoomMode) {
+      peerRef.current.sendData({
+        type: 'end-session',
+        data: { sessionId: sid },
+        timestamp: Date.now(),
+      });
+    }
+
     // Navigate IMMEDIATELY — don't wait for saves
     setCallState('ended');
     endSession();
@@ -604,6 +531,10 @@ function SessionPageInner() {
   // Role-aware video ref mapping: each role sees their own camera on their own tile
   const tutorVideoRef = role === 'tutor' ? localVideoRef : remoteVideoRef;
   const studentVideoRef = role === 'student' ? localVideoRef : remoteVideoRef;
+
+  // Role-aware stream mapping — passed directly to VideoTile for reliable playback
+  const tutorStream = role === 'tutor' ? localStream : remoteStream;
+  const studentStream = role === 'student' ? localStream : remoteStream;
 
   // Combined metrics history for timeline
   const fullHistory = useMemo(() => [...metricsArchive, ...metricsHistory], [metricsArchive, metricsHistory]);
@@ -702,6 +633,9 @@ function SessionPageInner() {
                 tutorVideoRef={tutorVideoRef}
                 studentVideoRef={studentVideoRef}
                 localVideoRef={localVideoRef}
+                tutorStream={tutorStream}
+                studentStream={studentStream}
+                demoVideoSrc={!isRoomMode ? '/demo/student-sample.mp4' : undefined}
                 tutorLabel={tutorLabel}
                 studentLabel={studentLabel}
                 viewMode={viewMode}
@@ -715,6 +649,9 @@ function SessionPageInner() {
               tutorVideoRef={tutorVideoRef}
               studentVideoRef={studentVideoRef}
               localVideoRef={localVideoRef}
+              tutorStream={tutorStream}
+              studentStream={studentStream}
+              demoVideoSrc={!isRoomMode ? '/demo/student-sample.mp4' : undefined}
               tutorLabel={tutorLabel}
               studentLabel={studentLabel}
               viewMode={viewMode}

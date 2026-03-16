@@ -9,6 +9,12 @@ interface VideoLayoutProps {
   tutorVideoRef: RefObject<HTMLVideoElement | null>;
   studentVideoRef: RefObject<HTMLVideoElement | null>;
   localVideoRef?: RefObject<HTMLVideoElement | null>;
+  /** MediaStream for tutor's video — passed directly to VideoTile for reliable playback */
+  tutorStream?: MediaStream | null;
+  /** MediaStream for student's video — passed directly to VideoTile for reliable playback */
+  studentStream?: MediaStream | null;
+  /** Fallback video src for demo/solo mode */
+  demoVideoSrc?: string;
   tutorLabel?: string;
   studentLabel?: string;
   viewMode: 'speaker' | 'gallery';
@@ -22,6 +28,9 @@ export function VideoLayout({
   studentVideoRef,
   tutorLabel = 'Tutor',
   studentLabel = 'Student',
+  tutorStream,
+  studentStream,
+  demoVideoSrc,
   viewMode,
   activeSpeaker,
   showOverlays = true,
@@ -52,6 +61,7 @@ export function VideoLayout({
         <VideoTile
           ref={tutorVideoRef}
           name={tutorLabel}
+          stream={tutorStream}
           isSpeaking={tutorMetrics.isSpeaking}
           eyeContactScore={tutorMetrics.eyeContactScore}
           isMuted={true}
@@ -66,6 +76,8 @@ export function VideoLayout({
         <VideoTile
           ref={studentVideoRef}
           name={studentLabel}
+          stream={studentStream}
+          videoSrc={!studentStream ? demoVideoSrc : undefined}
           isSpeaking={studentMetrics.isSpeaking}
           eyeContactScore={studentMetrics.eyeContactScore}
           isMuted={false}
@@ -83,16 +95,20 @@ export function VideoLayout({
   // Speaker mode - active speaker fills the screen
   const isActiveSpeakerTutor = activeSpeaker === 'tutor';
   const mainVideoRef = isActiveSpeakerTutor ? tutorVideoRef : studentVideoRef;
+  const mainStream = isActiveSpeakerTutor ? tutorStream : studentStream;
   const mainLabel = isActiveSpeakerTutor ? tutorLabel : studentLabel;
   const mainMetrics = isActiveSpeakerTutor ? tutorMetrics : studentMetrics;
   const mainIsSpeaking = mainMetrics.isSpeaking;
   const mainEyeContact = mainMetrics.eyeContactScore;
   const mainIsLocal = localRole === activeSpeaker;
+  const mainVideoSrc = !mainStream && !isActiveSpeakerTutor ? demoVideoSrc : undefined;
 
   return (
     <VideoTile
       ref={mainVideoRef}
       name={mainLabel}
+      stream={mainStream}
+      videoSrc={mainVideoSrc}
       isSpeaking={mainIsSpeaking}
       eyeContactScore={mainEyeContact}
       isMuted={isActiveSpeakerTutor}
