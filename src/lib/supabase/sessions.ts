@@ -305,7 +305,7 @@ export async function listSessions(tutorId?: string) {
 
     // Fetch average engagement for each session from metric_snapshots
     const sessionIds = sessions.map(s => s.id);
-    let engagementMap: Record<string, number> = {};
+    const engagementMap: Record<string, number> = {};
 
     if (sessionIds.length > 0) {
       const { data: metricsData } = await getDb()

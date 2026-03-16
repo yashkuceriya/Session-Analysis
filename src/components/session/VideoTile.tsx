@@ -106,7 +106,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
       };
 
       // Poll every 300ms until video is playing — then slow down to 2s
-      let fastInterval = setInterval(tryPlay, 300);
+      const fastInterval = setInterval(tryPlay, 300);
       let slowInterval: ReturnType<typeof setInterval> | null = null;
 
       const onPlaying = () => {

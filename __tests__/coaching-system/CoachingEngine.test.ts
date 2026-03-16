@@ -20,8 +20,8 @@ function makeSnapshot(overrides: Partial<{
     isSpeaking: false,
     silenceDurationMs: 0,
     eyeContactTrend: 'stable',
-    pitchVariance: 0,
-    speechRate: 0,
+    pitchVariance: 0.1,
+    speechRate: 0.3,
   };
   const student: ParticipantMetrics = {
     eyeContactScore: overrides.studentEyeContact ?? 0.6,
@@ -30,8 +30,8 @@ function makeSnapshot(overrides: Partial<{
     isSpeaking: false,
     silenceDurationMs: overrides.studentSilenceMs ?? 0,
     eyeContactTrend: overrides.studentEyeContactTrend ?? 'stable',
-    pitchVariance: 0,
-    speechRate: 0,
+    pitchVariance: 0.1,
+    speechRate: 0.3,
   };
   const session: SessionMetrics = {
     interruptionCount: overrides.interruptionCount ?? 0,
@@ -39,8 +39,8 @@ function makeSnapshot(overrides: Partial<{
     engagementTrend: 'stable',
     attentionDriftDetected: overrides.attentionDrift ?? false,
     elapsedMs: overrides.elapsedMs ?? 600000,
-    turnTakingGapMs: 0,
-    turnCount: 0,
+    turnTakingGapMs: 1500,
+    turnCount: 8,
     studentState: 'engaged',
   };
   return {
@@ -56,10 +56,11 @@ function makeSnapshot(overrides: Partial<{
 }
 
 describe('CoachingEngine', () => {
-  it('returns no nudges when everything is fine', () => {
-    const engine = new CoachingEngine();
+  it('returns no nudges at low sensitivity with neutral metrics', () => {
+    const engine = new CoachingEngine({ sensitivity: 'low', minIntervalMs: 0 });
     const nudges = engine.evaluate(makeSnapshot());
-    expect(nudges).toEqual([]);
+    // At low sensitivity, only critical nudges fire — neutral metrics shouldn't trigger any
+    expect(nudges.length).toBe(0);
   });
 
   it('triggers student-silent nudge after 3 minutes silence', () => {

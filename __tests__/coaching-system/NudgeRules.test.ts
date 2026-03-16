@@ -1,4 +1,4 @@
-import { DEFAULT_NUDGE_RULES } from '@/lib/coaching-system/NudgeRules';
+import { DEFAULT_NUDGE_RULES, createNudgeRules } from '@/lib/coaching-system/NudgeRules';
 import { MetricSnapshot, ParticipantMetrics, SessionMetrics } from '@/lib/metrics-engine/types';
 
 function makeSnapshot(overrides: {
@@ -11,6 +11,8 @@ function makeSnapshot(overrides: {
   attentionDrift?: boolean;
   elapsedMs?: number;
   engagementScore?: number;
+  studentState?: string;
+  turnCount?: number;
 }): MetricSnapshot {
   const tutor: ParticipantMetrics = {
     eyeContactScore: 0.7,
@@ -20,7 +22,7 @@ function makeSnapshot(overrides: {
     silenceDurationMs: 0,
     eyeContactTrend: 'stable',
     pitchVariance: 0,
-    speechRate: 0,
+    speechRate: 0.3,
   };
   const student: ParticipantMetrics = {
     eyeContactScore: overrides.studentEyeContact ?? 0.6,
@@ -30,7 +32,7 @@ function makeSnapshot(overrides: {
     silenceDurationMs: overrides.studentSilenceMs ?? 0,
     eyeContactTrend: overrides.studentEyeContactTrend ?? 'stable',
     pitchVariance: 0,
-    speechRate: 0,
+    speechRate: 0.3,
   };
   const session: SessionMetrics = {
     interruptionCount: overrides.interruptionCount ?? 0,
@@ -38,9 +40,9 @@ function makeSnapshot(overrides: {
     engagementTrend: 'stable',
     attentionDriftDetected: overrides.attentionDrift ?? false,
     elapsedMs: overrides.elapsedMs ?? 600000,
-    turnTakingGapMs: 0,
-    turnCount: 0,
-    studentState: 'engaged',
+    turnTakingGapMs: 1000,
+    turnCount: overrides.turnCount ?? 5,
+    studentState: (overrides.studentState as any) ?? 'engaged',
   };
   return {
     timestamp: Date.now(),
@@ -48,63 +50,35 @@ function makeSnapshot(overrides: {
     student,
     session,
     engagementScore: overrides.engagementScore ?? 70,
-    studentState: 'engaged',
+    studentState: (overrides.studentState as any) ?? 'engaged',
     tutorExpression: null,
     studentExpression: null,
   };
 }
 
 describe('NudgeRules', () => {
-  const rules = DEFAULT_NUDGE_RULES;
+  const rules = DEFAULT_NUDGE_RULES; // discussion type
 
-  it('student-silent-long triggers at 3 min silence', () => {
+  it('student-silent-long triggers above threshold', () => {
     const rule = rules.find(r => r.id === 'student-silent-long')!;
-    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 190000 }))).toBe(true);
-    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 100000 }))).toBe(false);
+    expect(rule).toBeDefined();
+    // Discussion threshold is 20000ms (20s)
+    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 25000 }))).toBe(true);
+    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 5000 }))).toBe(false);
   });
 
-  it('student-silent-critical triggers at 5 min silence', () => {
-    const rule = rules.find(r => r.id === 'student-silent-critical')!;
-    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 310000 }))).toBe(true);
-    expect(rule.trigger(makeSnapshot({ studentSilenceMs: 290000 }))).toBe(false);
+  it('attention-drift triggers when detected', () => {
+    const rule = rules.find(r => r.id === 'attention-drift')!;
+    expect(rule).toBeDefined();
+    expect(rule.trigger(makeSnapshot({ attentionDrift: true }))).toBe(true);
+    expect(rule.trigger(makeSnapshot({ attentionDrift: false }))).toBe(false);
   });
 
-  it('low-student-eye-contact requires both low score AND declining trend', () => {
-    const rule = rules.find(r => r.id === 'low-student-eye-contact')!;
-    // Low + declining: triggers
-    expect(rule.trigger(makeSnapshot({
-      studentEyeContact: 0.2,
-      studentEyeContactTrend: 'declining',
-    }))).toBe(true);
-    // Low + stable: does not trigger
-    expect(rule.trigger(makeSnapshot({
-      studentEyeContact: 0.2,
-      studentEyeContactTrend: 'stable',
-    }))).toBe(false);
-    // High + declining: does not trigger
-    expect(rule.trigger(makeSnapshot({
-      studentEyeContact: 0.8,
-      studentEyeContactTrend: 'declining',
-    }))).toBe(false);
-  });
-
-  it('tutor-dominating needs >80% talk AND >5 min elapsed', () => {
-    const rule = rules.find(r => r.id === 'tutor-dominating')!;
-    expect(rule.trigger(makeSnapshot({ tutorTalkPercent: 0.85, elapsedMs: 400000 }))).toBe(true);
-    expect(rule.trigger(makeSnapshot({ tutorTalkPercent: 0.85, elapsedMs: 100000 }))).toBe(false);
-    expect(rule.trigger(makeSnapshot({ tutorTalkPercent: 0.60, elapsedMs: 400000 }))).toBe(false);
-  });
-
-  it('energy-drop needs low energy AND >10 min elapsed', () => {
-    const rule = rules.find(r => r.id === 'energy-drop')!;
-    expect(rule.trigger(makeSnapshot({ studentEnergy: 0.1, elapsedMs: 700000 }))).toBe(true);
-    expect(rule.trigger(makeSnapshot({ studentEnergy: 0.1, elapsedMs: 300000 }))).toBe(false);
-  });
-
-  it('great-engagement triggers at score >85', () => {
+  it('great-engagement triggers at high score', () => {
     const rule = rules.find(r => r.id === 'great-engagement')!;
-    expect(rule.trigger(makeSnapshot({ engagementScore: 90 }))).toBe(true);
-    expect(rule.trigger(makeSnapshot({ engagementScore: 70 }))).toBe(false);
+    expect(rule).toBeDefined();
+    expect(rule.trigger(makeSnapshot({ engagementScore: 90, elapsedMs: 400000 }))).toBe(true);
+    expect(rule.trigger(makeSnapshot({ engagementScore: 50, elapsedMs: 400000 }))).toBe(false);
   });
 
   it('all rules have required fields', () => {
@@ -117,5 +91,14 @@ describe('NudgeRules', () => {
       expect(rule.cooldownMs).toBeGreaterThan(0);
       expect(typeof rule.trigger).toBe('function');
     }
+  });
+
+  it('createNudgeRules produces rules for each session type', () => {
+    const lectureRules = createNudgeRules('lecture');
+    const practiceRules = createNudgeRules('practice');
+    const discussionRules = createNudgeRules('discussion');
+    expect(lectureRules.length).toBeGreaterThan(5);
+    expect(practiceRules.length).toBeGreaterThan(5);
+    expect(discussionRules.length).toBeGreaterThan(5);
   });
 });

@@ -482,7 +482,7 @@ export class MetricsEngine {
     let eyeWeight = c.eyeContactWeight;
     let speakingWeight = c.speakingTimeWeight;
     let energyWeight = c.energyWeight;
-    let interruptionWeight = c.interruptionWeight;
+    const interruptionWeight = c.interruptionWeight;
     let attentionWeight = c.attentionWeight;
 
     if (!hasFaceData) {

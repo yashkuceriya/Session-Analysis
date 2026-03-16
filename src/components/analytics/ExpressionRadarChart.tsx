@@ -25,7 +25,7 @@ export function ExpressionRadarChart({ metricsHistory }: ExpressionRadarChartPro
   if (metricsHistory.length === 0) return null;
 
   // Compute average expression values
-  let tutorAvg = {
+  const tutorAvg = {
     smile: 0,
     focus: 0,
     confusion: 0,
@@ -34,7 +34,7 @@ export function ExpressionRadarChart({ metricsHistory }: ExpressionRadarChartPro
     positivity: 0,
   };
 
-  let studentAvg = {
+  const studentAvg = {
     smile: 0,
     focus: 0,
     confusion: 0,

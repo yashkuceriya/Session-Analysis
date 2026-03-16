@@ -8,6 +8,7 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
+      "react-compiler/react-compiler": "warn",
     },
   },
   globalIgnores([

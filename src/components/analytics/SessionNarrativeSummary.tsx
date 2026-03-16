@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unstable-nested-components */
 'use client';
 
 import { MetricSnapshot } from '@/lib/metrics-engine/types';
@@ -78,7 +79,7 @@ function computeSessionStats(
   let interruptionCount = 0;
   let turnGapSum = 0;
   let turnCount = 0;
-  let stateDistribution: Record<string, number> = {};
+  const stateDistribution: Record<string, number> = {};
 
   const tutorExpressionValues = {
     smile: [] as number[],
