@@ -58,6 +58,8 @@ export class SignalingClient {
   private seenMessageIds = new Set<string>();
   private broadcastChannelReady = false;
   private httpPollingReady = false;
+  private initTime = 0; // Track when signaling started for fast-poll window
+  private peerDiscovered = false; // True once we've received ANY message from a peer
 
   constructor(roomId: string, role: PeerRole) {
     this.roomId = roomId;
@@ -211,7 +213,9 @@ export class SignalingClient {
   private initHttpPolling(): void {
     if (typeof fetch === 'undefined') return; // Not in browser
     this.isUsingHttpPolling = true;
-    this.lastPollTime = Date.now();
+    this.initTime = Date.now();
+    // Start polling from 30 seconds ago to catch any messages already in the room
+    this.lastPollTime = Date.now() - 30000;
     this.httpPollingReady = true;
     this.updateConnectionState();
 
@@ -222,7 +226,8 @@ export class SignalingClient {
       roomId: this.roomId,
     });
 
-    // Send ready signal after a short delay
+    // Send ready signal after a short delay, then repeat periodically
+    // so the other peer discovers us even if they joined later
     setTimeout(() => {
       this.sendViaHttp({
         type: 'ready',
@@ -230,6 +235,20 @@ export class SignalingClient {
         roomId: this.roomId,
       });
     }, 500);
+
+    // Re-send join+ready every 3 seconds for the first 30 seconds
+    // This ensures peers discover each other regardless of join order
+    const rediscoveryInterval = setInterval(() => {
+      if (this.peerDiscovered || Date.now() - this.initTime > 30000) {
+        clearInterval(rediscoveryInterval);
+        return;
+      }
+      this.sendViaHttp({
+        type: 'join',
+        from: this.role,
+        roomId: this.roomId,
+      });
+    }, 3000);
 
     // Start polling loop
     this.pollSignals();
@@ -265,7 +284,9 @@ export class SignalingClient {
 
       if (response.ok) {
         const data = await response.json();
-        this.lastPollTime = data.serverTime || Date.now();
+        // Use server time but subtract 1 second overlap to prevent timing gaps
+        // between different Vercel serverless instances
+        this.lastPollTime = (data.serverTime || Date.now()) - 1000;
 
         // Process new messages
         if (data.messages && Array.isArray(data.messages)) {
@@ -279,7 +300,8 @@ export class SignalingClient {
             }
 
             // Validate and deliver
-            if (msg.from !== this.role && msg.roomId === this.roomId) {
+            if (msg.from !== this.role) {
+              this.peerDiscovered = true;
               this.messageHandlers.forEach((h) => h(msg));
             }
           }
@@ -288,8 +310,11 @@ export class SignalingClient {
     } catch (err) {
       console.warn('[SignalingClient] HTTP GET error:', err);
     } finally {
-      // Adaptive polling interval: 500ms during active negotiation, 2s once stable
-      const interval = this.connectionState === 'connected' ? 2000 : 500;
+      // Fast polling (400ms) for first 30 seconds or until peer is connected
+      // Then switch to slower polling (1.5s) to save bandwidth
+      const timeSinceInit = Date.now() - this.initTime;
+      const isInitialPhase = timeSinceInit < 30000;
+      const interval = isInitialPhase ? 400 : 1500;
       this.pollingInterval = setTimeout(() => {
         this.pollSignals();
       }, interval);
@@ -387,6 +412,7 @@ export class SignalingClient {
     this.isUsingHttpPolling = false;
     this.broadcastChannelReady = false;
     this.httpPollingReady = false;
+    this.peerDiscovered = false;
     this.connected = false;
     this.notifyConnectionChange(false);
   }

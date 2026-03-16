@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase/server';
 
 interface SignalMessage {
   id: string;
@@ -20,9 +21,6 @@ const hasSupabase = !!(
 function getDb() {
   if (!hasSupabase) return null;
   try {
-    const { getSupabaseAdmin } = require('@/lib/supabase/server') as {
-      getSupabaseAdmin: () => any;
-    };
     return getSupabaseAdmin();
   } catch (error) {
     console.error('[Signal API] Failed to initialize Supabase:', error);
@@ -32,22 +30,16 @@ function getDb() {
 
 // ─── In-memory fallback (dev mode / single-instance) ────────────────
 const memoryStore = new Map<string, SignalMessage[]>();
-const MESSAGE_RETENTION_TIME = 30000; // 30 seconds
-
+const MESSAGE_RETENTION_TIME = 30000;
 let lastCleanupTime = Date.now();
 
 function cleanupMemory() {
   const now = Date.now();
-  // Only run cleanup every 10 seconds to avoid excessive processing
-  if (now - lastCleanupTime < 10000) {
-    return;
-  }
-
+  if (now - lastCleanupTime < 10000) return;
   lastCleanupTime = now;
   const cutoff = now - MESSAGE_RETENTION_TIME;
 
-  const roomIds = Array.from(memoryStore.keys());
-  for (const roomId of roomIds) {
+  for (const roomId of Array.from(memoryStore.keys())) {
     const messages = memoryStore.get(roomId);
     if (messages) {
       const filtered = messages.filter((m) => m.timestamp > cutoff);
@@ -98,32 +90,24 @@ export async function POST(req: NextRequest) {
             candidate: signalMsg.candidate,
             data: signalMsg.data,
           },
-          created_at: new Date(signalMsg.timestamp).toISOString(),
         });
 
         if (!error) {
-          // Asynchronously cleanup old messages (older than 60s)
-          // Don't await this to avoid slowing down the response
-          db.from('signal_messages')
+          // Async cleanup — fire and forget
+          void db.from('signal_messages')
             .delete()
-            .lt('created_at', new Date(Date.now() - 60000).toISOString())
-            .then(() => {
-              // Cleanup done
-            })
-            .catch((err: unknown) => {
-              console.error('[Signal API] Supabase cleanup error:', err);
-            });
+            .lt('created_at', new Date(Date.now() - 60000).toISOString());
 
           return NextResponse.json(
-            { ok: true, id: signalMsg.id, serverTime: Date.now() },
+            { ok: true, id: signalMsg.id, serverTime: Date.now(), backend: 'supabase' },
             { status: 200 }
           );
         } else {
-          console.error('[Signal API] Supabase insert error:', error);
+          console.error('[Signal API] Supabase insert error:', error.message, error.code);
           // Fall through to memory store
         }
       } catch (supabaseError) {
-        console.error('[Signal API] Supabase error:', supabaseError);
+        console.error('[Signal API] Supabase exception:', supabaseError);
         // Fall through to memory store
       }
     }
@@ -136,7 +120,7 @@ export async function POST(req: NextRequest) {
     cleanupMemory();
 
     return NextResponse.json(
-      { ok: true, id: signalMsg.id, serverTime: Date.now() },
+      { ok: true, id: signalMsg.id, serverTime: Date.now(), backend: 'memory' },
       { status: 200 }
     );
   } catch (error) {
@@ -165,13 +149,14 @@ export async function GET(req: NextRequest) {
   const db = getDb();
   if (db) {
     try {
-      const sinceISO = new Date(since || 0).toISOString();
+      // Use >= with a small buffer to prevent missing messages at boundaries
+      const sinceISO = new Date(Math.max(0, since)).toISOString();
       const { data, error } = await db
         .from('signal_messages')
         .select('*')
         .eq('room_id', room)
         .neq('sender_role', role)
-        .gt('created_at', sinceISO)
+        .gte('created_at', sinceISO)
         .order('created_at', { ascending: true })
         .limit(50);
 
@@ -188,16 +173,14 @@ export async function GET(req: NextRequest) {
         }));
 
         return NextResponse.json(
-          { messages, serverTime: Date.now() },
+          { messages, serverTime: Date.now(), backend: 'supabase' },
           { status: 200 }
         );
       } else {
-        console.error('[Signal API] Supabase query error:', error);
-        // Fall through to memory store
+        console.error('[Signal API] Supabase query error:', error?.message, error?.code);
       }
     } catch (supabaseError) {
-      console.error('[Signal API] Supabase error:', supabaseError);
-      // Fall through to memory store
+      console.error('[Signal API] Supabase exception:', supabaseError);
     }
   }
 
@@ -208,7 +191,7 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => a.timestamp - b.timestamp);
 
   return NextResponse.json(
-    { messages, serverTime: Date.now() },
+    { messages, serverTime: Date.now(), backend: 'memory' },
     { status: 200 }
   );
 }
