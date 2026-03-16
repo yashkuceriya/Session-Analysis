@@ -181,17 +181,15 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
     return (
       <div
         ref={containerRef}
-        className={`fixed z-30 rounded-3xl overflow-hidden bg-gray-900 ring-1 ring-white/20 shadow-2xl transition-all duration-200 ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
-        } ${stream ? 'ring-white/30' : 'ring-white/10'}`}
+        className={`fixed z-30 rounded-[20px] overflow-hidden bg-gray-900 ring-1 ring-white/15 transition-all duration-200 ${
+          isDragging ? 'cursor-grabbing scale-[1.02]' : 'cursor-grab hover:ring-white/25'
+        }`}
         style={{
           width: `${currentSize.width}px`,
           height: `${currentSize.height}px`,
           left: `${position.x}px`,
           top: `${position.y}px`,
-          boxShadow: stream
-            ? '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.1)'
-            : '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)',
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}

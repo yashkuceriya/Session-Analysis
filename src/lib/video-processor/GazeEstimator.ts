@@ -29,12 +29,24 @@ export class GazeEstimator {
   private calibration: GazeCalibration | null = null;
   private calibrationSamples: { x: number; y: number }[] = [];
   private isCalibrating = false;
+  private blinkCount = 0;
+  private blinkTimestamps: number[] = [];
+  private wasBlinking = false;
 
   estimate(landmarks: FaceLandmark[]): GazeResult | null {
     if (!landmarks || landmarks.length < 478) return null;
 
     // Blink detection: skip frame if eyes are closed
-    if (this.isBlinking(landmarks)) {
+    const blinking = this.isBlinking(landmarks);
+
+    // Track blink count and timestamps
+    if (blinking && !this.wasBlinking) {
+      this.blinkTimestamps.push(Date.now());
+      this.blinkCount++;
+    }
+    this.wasBlinking = blinking;
+
+    if (blinking) {
       return null; // Don't corrupt gaze estimate during blinks
     }
 
@@ -83,10 +95,14 @@ export class GazeEstimator {
     const maxDeviation = Math.max(deviationX, deviationY);
     const confidence = 1 / (1 + Math.exp(10 * (maxDeviation - threshold)));
 
+    // Normalized deviation (0-1)
+    const normalizedDeviation = Math.min(1, maxDeviation / (threshold * 2));
+
     return {
       isLookingAtCamera,
       gazeDirection: { x: smoothedX - centerX, y: smoothedY - centerY },
       confidence,
+      deviation: normalizedDeviation,
     };
   }
 
@@ -161,11 +177,21 @@ export class GazeEstimator {
     this.calibration = cal;
   }
 
+  getBlinkRate(): number {
+    const now = Date.now();
+    // Keep only blinks from last 60 seconds
+    this.blinkTimestamps = this.blinkTimestamps.filter(t => now - t < 60000);
+    return this.blinkTimestamps.length; // blinks per minute
+  }
+
   reset() {
     this.smoothX.reset();
     this.smoothY.reset();
     this.isCalibrating = false;
     this.calibrationSamples = [];
+    this.blinkCount = 0;
+    this.blinkTimestamps = [];
+    this.wasBlinking = false;
     // Don't reset calibration — it should persist for the session
   }
 }

@@ -236,7 +236,7 @@ export async function listSessions(tutorId?: string) {
   if (hasSupabase) {
     let query = getDb()
       .from('sessions')
-      .select('id, config, start_time, end_time, status')
+      .select('id, config, start_time, end_time, status, tutor_id')
       .order('start_time', { ascending: false })
       .limit(50);
 
@@ -246,7 +246,41 @@ export async function listSessions(tutorId?: string) {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+
+    const sessions = data || [];
+
+    // Fetch average engagement for each session from metric_snapshots
+    const sessionIds = sessions.map(s => s.id);
+    let engagementMap: Record<string, number> = {};
+
+    if (sessionIds.length > 0) {
+      const { data: metricsData } = await getDb()
+        .from('metric_snapshots')
+        .select('session_id, engagement_score')
+        .in('session_id', sessionIds);
+
+      if (metricsData && metricsData.length > 0) {
+        const grouped: Record<string, number[]> = {};
+        for (const m of metricsData) {
+          if (!grouped[m.session_id]) grouped[m.session_id] = [];
+          grouped[m.session_id].push(m.engagement_score);
+        }
+        for (const [sid, scores] of Object.entries(grouped)) {
+          engagementMap[sid] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        }
+      }
+    }
+
+    return sessions.map(s => {
+      const startMs = new Date(s.start_time).getTime();
+      const endMs = s.end_time ? new Date(s.end_time).getTime() : null;
+      return {
+        ...s,
+        startTime: startMs,
+        duration: endMs ? endMs - startMs : 0,
+        engagementScore: engagementMap[s.id] || 0,
+      };
+    });
   }
 
   // File fallback

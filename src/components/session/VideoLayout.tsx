@@ -6,8 +6,8 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { StudentState } from '@/lib/metrics-engine/types';
 
 interface VideoLayoutProps {
-  tutorVideoRef: RefObject<HTMLVideoElement | null>;
-  studentVideoRef: RefObject<HTMLVideoElement | null>;
+  tutorVideoRef?: RefObject<HTMLVideoElement | null>;
+  studentVideoRef?: RefObject<HTMLVideoElement | null>;
   localVideoRef?: RefObject<HTMLVideoElement | null>;
   /** MediaStream for tutor's video — passed directly to VideoTile for reliable playback */
   tutorStream?: MediaStream | null;
@@ -60,35 +60,34 @@ export function VideoLayout({
   if (isRoomMode) {
     const isLocalTutor = localRole === 'tutor';
     // For tutor: remote = student, for student: remote = tutor
-    const remoteVideoRef = isLocalTutor ? studentVideoRef : tutorVideoRef;
     const remoteStream = isLocalTutor ? studentStream : tutorStream;
     const remoteLabel = isLocalTutor ? studentLabel : tutorLabel;
     const remoteMetrics = isLocalTutor ? studentMetrics : tutorMetrics;
 
     return (
-      <VideoTile
-        ref={remoteVideoRef}
-        name={remoteLabel}
-        stream={remoteStream}
-        isSpeaking={remoteMetrics.isSpeaking}
-        eyeContactScore={remoteMetrics.eyeContactScore}
-        isMuted={isLocalTutor}
-        isLocal={false}
-        engagementScore={engagementScore}
-        studentState={!isLocalTutor ? (studentState as StudentState) : undefined}
-        isActiveSpeaker={true}
-        showOverlays={showOverlays}
-        className="w-full h-full !rounded-none"
-      />
+      <div className="w-full h-full p-3 bg-[#0a0a12]">
+        <VideoTile
+          name={remoteLabel}
+          stream={remoteStream}
+          isSpeaking={remoteMetrics.isSpeaking}
+          eyeContactScore={remoteMetrics.eyeContactScore}
+          isMuted={isLocalTutor}
+          isLocal={false}
+          engagementScore={engagementScore}
+          studentState={!isLocalTutor ? (studentState as StudentState) : undefined}
+          isActiveSpeaker={true}
+          showOverlays={showOverlays}
+          className="w-full h-full"
+        />
+      </div>
     );
   }
 
   if (viewMode === 'gallery') {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 w-full h-full" style={{ minHeight: 0 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 w-full h-full bg-[#0a0a12]" style={{ minHeight: 0 }}>
         {/* Tutor tile */}
         <VideoTile
-          ref={tutorVideoRef}
           name={tutorLabel}
           stream={tutorStream}
           isSpeaking={tutorMetrics.isSpeaking}
@@ -103,7 +102,6 @@ export function VideoLayout({
 
         {/* Student tile */}
         <VideoTile
-          ref={studentVideoRef}
           name={studentLabel}
           stream={studentStream}
           videoSrc={!studentStream ? demoVideoSrc : undefined}
@@ -123,7 +121,6 @@ export function VideoLayout({
 
   // Speaker mode - active speaker fills the screen
   const isActiveSpeakerTutor = activeSpeaker === 'tutor';
-  const mainVideoRef = isActiveSpeakerTutor ? tutorVideoRef : studentVideoRef;
   const mainStream = isActiveSpeakerTutor ? tutorStream : studentStream;
   const mainLabel = isActiveSpeakerTutor ? tutorLabel : studentLabel;
   const mainMetrics = isActiveSpeakerTutor ? tutorMetrics : studentMetrics;
@@ -133,20 +130,21 @@ export function VideoLayout({
   const mainVideoSrc = !mainStream && !isActiveSpeakerTutor ? demoVideoSrc : undefined;
 
   return (
-    <VideoTile
-      ref={mainVideoRef}
-      name={mainLabel}
-      stream={mainStream}
-      videoSrc={mainVideoSrc}
-      isSpeaking={mainIsSpeaking}
-      eyeContactScore={mainEyeContact}
-      isMuted={isActiveSpeakerTutor}
-      isLocal={mainIsLocal}
-      engagementScore={engagementScore}
-      studentState={isActiveSpeakerTutor ? undefined : (studentState as StudentState)}
-      isActiveSpeaker={true}
-      showOverlays={showOverlays}
-      className="w-full h-full !rounded-none"
-    />
+    <div className="w-full h-full p-3 bg-[#0a0a12]">
+      <VideoTile
+        name={mainLabel}
+        stream={mainStream}
+        videoSrc={mainVideoSrc}
+        isSpeaking={mainIsSpeaking}
+        eyeContactScore={mainEyeContact}
+        isMuted={isActiveSpeakerTutor}
+        isLocal={mainIsLocal}
+        engagementScore={engagementScore}
+        studentState={isActiveSpeakerTutor ? undefined : (studentState as StudentState)}
+        isActiveSpeaker={true}
+        showOverlays={showOverlays}
+        className="w-full h-full"
+      />
+    </div>
   );
 }

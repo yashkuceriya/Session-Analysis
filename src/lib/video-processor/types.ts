@@ -14,6 +14,7 @@ export interface GazeResult {
   isLookingAtCamera: boolean;
   gazeDirection: { x: number; y: number };
   confidence: number;
+  deviation?: number; // 0-1, normalized deviation from center
 }
 
 export interface ExpressionResult {
@@ -29,6 +30,8 @@ export interface ExpressionResult {
   headNod: number;         // -1 to 1, positive = nodding yes
   headShake: number;       // 0-1, shaking no
   headTilt: number;        // radians, lateral head tilt
+  frustration?: number;    // 0-1
+  interest?: number;       // 0-1
 }
 
 /** Subset of MediaPipe FaceLandmarker blendshape categories we use */

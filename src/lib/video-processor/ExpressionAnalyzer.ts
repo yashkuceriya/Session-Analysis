@@ -94,6 +94,12 @@ export class ExpressionAnalyzer {
       Math.min(1, mouthOpen * 0.3 + browRaise * 0.2 + smile * 0.2 + eyeWide * 0.15 + browFurrow * 0.15)
     );
 
+    // Frustration: derived from browFurrow + frown + low valence
+    const frustration = Math.min(1, browFurrow * 0.4 + frown * 0.3 + (1 - valence) * 0.3);
+
+    // Interest: derived from browRaise + concentration + eye contact
+    const interest = Math.min(1, browRaise * 0.3 + concentration * 0.3 + (1 - frown) * 0.2 + eyeWide * 0.2);
+
     // Head pose from landmarks
     const headPose = this.estimateHeadPose(landmarks);
     this.pitchHistory.push(headPose.pitch);
@@ -115,6 +121,8 @@ export class ExpressionAnalyzer {
       headNod,
       headShake,
       headTilt: headPose.roll,
+      frustration,
+      interest,
     };
   }
 
@@ -145,12 +153,22 @@ export class ExpressionAnalyzer {
     this.pitchHistory.push(headPose.pitch);
     this.yawHistory.push(headPose.yaw);
 
+    const frown = Math.min(1, (1 - smile) * 0.5);
+    const valenceValue = Math.min(1, Math.max(0, valence));
+    const concentrationValue = Math.min(1, Math.max(0, concentration));
+
+    // Frustration: derived from browFurrow + frown + low valence
+    const frustration = Math.min(1, browFurrow * 0.4 + frown * 0.3 + (1 - valenceValue) * 0.3);
+
+    // Interest: derived from browRaise + concentration + eye contact
+    const interest = Math.min(1, browRaise * 0.3 + concentrationValue * 0.3 + (1 - frown) * 0.2);
+
     return {
-      valence: Math.min(1, Math.max(0, valence)),
+      valence: valenceValue,
       energy: Math.min(1, Math.max(0, energy)),
       confusion: Math.min(1, Math.max(0, confusion)),
       surprise: Math.min(1, browRaise * 0.6 + mouthOpen * 0.4),
-      concentration: Math.min(1, Math.max(0, concentration)),
+      concentration: concentrationValue,
       smile,
       mouthOpen,
       browFurrow,
@@ -158,6 +176,8 @@ export class ExpressionAnalyzer {
       headNod: this.detectNodding(),
       headShake: this.detectShaking(),
       headTilt: headPose.roll,
+      frustration,
+      interest,
     };
   }
 

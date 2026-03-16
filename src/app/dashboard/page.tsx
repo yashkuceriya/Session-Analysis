@@ -69,7 +69,7 @@ export default function DashboardPage() {
             const data = await response.json();
             transformedSessions = (data.sessions || []).map((s: any) => ({
               id: s.id,
-              date: s.startTime || s.date,
+              date: s.startTime || (s.start_time ? new Date(s.start_time).getTime() : Date.now()),
               subject: s.config?.subject || 'Unknown',
               studentName: s.config?.studentName || 'Unknown',
               duration: s.duration || 0,
@@ -270,8 +270,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="card mx-4 sm:mx-6 lg:mx-8 mt-6 mb-8 sticky top-6 z-40 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--card-border)] pb-6">
+      <header className="mx-4 sm:mx-6 lg:mx-8 mt-6 mb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-baseline gap-3 mb-1">
               <h1 className="text-4xl font-bold text-[var(--foreground)]">Dashboard</h1>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
             </Link>
             <Link
               href="/session"
-              className="inline-flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[var(--accent)] to-orange-500 hover:from-[var(--accent-hover)] hover:to-orange-600 text-white font-medium py-2.5 px-5 rounded-xl transition-all duration-200 hover:shadow-lg shadow-md shadow-orange-500/20"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -343,7 +343,7 @@ export default function DashboardPage() {
           <>
             {/* Recent Activity Welcome Section */}
             {lastSession && (
-              <div className="card p-6 mb-8 bg-gradient-to-r from-[var(--accent-subtle)] to-transparent border border-[var(--accent-light)] shadow-sm">
+              <div className="card p-6 mb-8 bg-gradient-to-r from-orange-50 via-[var(--accent-subtle)] to-transparent border border-orange-200/50 shadow-md">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">👋</span>
                   <h3 className="font-semibold text-[var(--foreground)]">Welcome back!</h3>
@@ -563,24 +563,15 @@ function StatCard({
   descriptor: string;
   borderColor: string;
 }) {
-  const bgColorMap: { [key: string]: string } = {
-    'border-t-blue-500': 'from-blue-50',
-    'border-t-green-500': 'from-green-50',
-    'border-t-purple-500': 'from-purple-50',
-    'border-t-amber-500': 'from-amber-50',
-  };
-
-  const bgColor = bgColorMap[borderColor] || 'from-blue-50';
-
   return (
-    <div className={`card border-t-2 ${borderColor} p-6 bg-gradient-to-br ${bgColor} to-transparent hover:shadow-md transition-shadow duration-200`}>
+    <div className="card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">{label}</p>
-          <p className="text-4xl font-bold text-[var(--foreground)] mt-3">{value}</p>
+          <p className="text-4xl font-bold text-[var(--foreground)] mt-3 group-hover:text-[var(--accent)] transition-colors">{value}</p>
           <p className="text-[var(--muted-light)] text-xs mt-3">{descriptor}</p>
         </div>
-        <div className="text-5xl opacity-60">{icon}</div>
+        <div className="text-4xl opacity-40 group-hover:opacity-60 transition-opacity group-hover:scale-110 transform duration-200">{icon}</div>
       </div>
     </div>
   );
@@ -756,7 +747,7 @@ function SessionRow({
 
   return (
     <Link href={`/analytics/${session.id}`}>
-      <tr className="hover:bg-[var(--card-hover)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0 hover:shadow-sm">
+      <tr className="hover:bg-[var(--accent-light)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0 hover:shadow-sm">
         <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground)]">
           <div className="flex items-center gap-2">
             {isFirst && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200 font-medium">Recent</span>}
@@ -814,7 +805,7 @@ function SessionCard({
 
   return (
     <Link href={`/analytics/${session.id}`}>
-      <div className="p-4 hover:bg-[var(--card-hover)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0">
+      <div className="p-4 hover:bg-[var(--accent-light)] transition-colors duration-150 cursor-pointer border-b border-[var(--card-border)] last:border-b-0">
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -850,6 +841,7 @@ function SessionCard({
 }
 
 function formatDate(timestamp: number): string {
+  if (!timestamp || isNaN(timestamp)) return 'No date';
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -891,6 +883,7 @@ function formatDuration(ms: number): string {
 }
 
 function getRelativeTime(timestamp: number): string {
+  if (!timestamp || isNaN(timestamp)) return 'unknown';
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

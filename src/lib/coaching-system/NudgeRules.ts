@@ -183,6 +183,76 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
       cooldownMs: 600000,
       sensitivity: 'high',
     },
+    // NEW: Enhanced distraction and expression-based nudges
+    {
+      id: 'high-blink-rate',
+      trigger: (m) => (m.student.blinkRate ?? 0) > 25 && m.session.elapsedMs > 300000,
+      message: "Student's blink rate is elevated — this may indicate fatigue or stress. Consider a short break.",
+      icon: '😫',
+      priority: 'low',
+      cooldownMs: 300000,
+      sensitivity: 'high',
+    },
+    {
+      id: 'student-fidgeting',
+      trigger: (m) => (m.student.headMovement ?? 0) > 0.6 && m.session.elapsedMs > 180000,
+      message: "Student appears restless — try an interactive activity or movement break",
+      icon: '🫨',
+      priority: 'medium',
+      cooldownMs: 240000,
+      sensitivity: 'medium',
+    },
+    {
+      id: 'high-distraction',
+      trigger: (m) => (m.student.distractionScore ?? 0) > 0.7 && m.session.elapsedMs > 120000,
+      message: "High distraction detected — try refocusing with a direct question or visual aid",
+      icon: '🎯',
+      priority: 'high',
+      cooldownMs: 120000,
+      sensitivity: 'medium',
+    },
+    {
+      id: 'student-frustration',
+      trigger: (m) => {
+        const expr = m.studentExpression;
+        return expr !== null && (expr.frustration ?? 0) > 0.5 && m.session.elapsedMs > 120000;
+      },
+      message: "Student may be frustrated — acknowledge the difficulty and offer a different approach",
+      icon: '😤',
+      priority: 'high',
+      cooldownMs: 180000,
+      sensitivity: 'medium',
+    },
+    {
+      id: 'student-high-interest',
+      trigger: (m) => {
+        const expr = m.studentExpression;
+        return expr !== null && (expr.interest ?? 0) > 0.7 && m.engagementScore > 80 && m.session.elapsedMs > 300000;
+      },
+      message: "Student is showing high interest — great time to introduce a new challenging concept!",
+      icon: '🔥',
+      priority: 'low',
+      cooldownMs: 600000,
+      sensitivity: 'high',
+    },
+    {
+      id: 'focus-streak-celebration',
+      trigger: (m) => (m.session.focusStreakMs ?? 0) > 600000 && m.engagementScore > 70,
+      message: "10+ minute focus streak! The student is deeply engaged — keep this flow going",
+      icon: '🏆',
+      priority: 'low',
+      cooldownMs: 600000,
+      sensitivity: 'high',
+    },
+    {
+      id: 'slouching-detected',
+      trigger: (m) => m.student.posture === 'slouching' && m.session.elapsedMs > 300000,
+      message: "Student's posture suggests low energy — a quick stretch or change of activity might help",
+      icon: '🧘',
+      priority: 'low',
+      cooldownMs: 600000,
+      sensitivity: 'high',
+    },
   ];
 }
 

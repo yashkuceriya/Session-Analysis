@@ -258,6 +258,47 @@ function SessionPageInner() {
     }
   }, [localStream]);
 
+  // Keep face mesh video elements attached to streams (separate from UI elements)
+  // These hidden video elements are exclusively for face detection processing
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      if (localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+      }
+      if (localVideoRef.current.paused) {
+        localVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (!el) return;
+
+    // In room mode with remote stream: attach the stream
+    if (remoteStream) {
+      if (el.srcObject !== remoteStream) {
+        el.srcObject = remoteStream;
+      }
+      if (el.paused) {
+        el.play().catch(() => {});
+      }
+    }
+    // In solo mode: attach the demo video
+    else if (!isRoomMode) {
+      const demoSrc = '/demo/student-sample.mp4';
+      if (el.src !== demoSrc) {
+        el.srcObject = null;
+        el.src = demoSrc;
+        el.loop = true;
+        el.muted = true;
+      }
+      if (el.paused) {
+        el.play().catch(() => {});
+      }
+    }
+  }, [remoteStream, isRoomMode]);
+
   // Play remote audio through a separate (unmuted) audio element for reliable playback
   useEffect(() => {
     if (!remoteStream || !remoteAudioRef.current) return;
@@ -351,14 +392,13 @@ function SessionPageInner() {
         if (msg.type === 'chat' && typeof msg.data === 'object' && msg.data !== null) {
           // Could dispatch to chat — for now just log
         }
-        // Session end: tutor ended the session — navigate student to analytics
+        // Session end: tutor ended the session — navigate student to session-ended page
         if (msg.type === 'end-session' && typeof msg.data === 'object' && msg.data !== null) {
-          const endData = msg.data as { sessionId: string };
-          const sid = endData.sessionId || useSessionStore.getState().sessionId;
           setCallState('ended');
           endSession();
           peerRef.current?.stop();
-          router.push(`/analytics/${sid}`);
+          // Students go to session-ended page, not analytics
+          router.push(`/session-ended?role=${role}`);
           return; // Don't process further messages
         }
         // Timer sync: student receives tutor's startTime and sessionId
@@ -553,7 +593,12 @@ function SessionPageInner() {
     setCallState('ended');
     endSession();
     peerRef.current?.stop();
-    router.push(`/analytics/${sid}`);
+    // Tutor goes to analytics, student goes to session-ended
+    if (isTutor) {
+      router.push(`/analytics/${sid}`);
+    } else {
+      router.push(`/session-ended?role=${role}`);
+    }
 
     // Fire-and-forget: save in background
     if (sid) {
@@ -870,6 +915,24 @@ function SessionPageInner() {
 
       {/* Hidden audio element — plays remote participant audio (video elements are muted for autoplay) */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+
+      {/* Hidden video elements for face mesh processing — always attached to streams, decoupled from UI layout */}
+      <video
+        ref={localVideoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
+      />
+      {remoteStream && (
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
+        />
+      )}
     </div>
   );
 }

@@ -179,10 +179,13 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
     return (
       <div
-        className={`relative overflow-hidden bg-gray-900 transition-all duration-300 ${
-          isActiveSpeaker ? 'ring-2 ring-blue-400 shadow-lg shadow-blue-500/30' : ''
+        className={`relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-all duration-500 ${
+          isActiveSpeaker ? 'ring-2 ring-blue-400/60 shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'ring-1 ring-white/10'
         } ${className}`}
-        style={{ borderRadius: className.includes('!rounded-none') ? 0 : '12px', minHeight: '200px' }}
+        style={{
+          borderRadius: className.includes('!rounded-none') ? 0 : '20px',
+          minHeight: '200px',
+        }}
       >
         {/*
           Video at z-0, ALWAYS full opacity.
@@ -236,45 +239,34 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
           </div>
         )}
 
+        {/* Subtle vignette overlay */}
+        <div className="absolute inset-0 z-[5] pointer-events-none rounded-[20px]" style={{
+          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.3)',
+        }} />
+
         {showOverlays && (
           <>
-            {/* Bottom gradient overlay for text readability */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none z-10" />
-
-            {/* Bottom bar: name + muted + speaking indicator */}
-            <div className="absolute bottom-0 left-0 right-0 z-20">
-              {/* Subtle engagement accent line */}
-              <div
-                className="h-[3px] w-full transition-colors duration-1000"
-                style={{ backgroundColor: getEngagementColor() }}
-              />
-              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
-                {/* Left: name + role */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-white text-sm font-semibold truncate">{name}</span>
-                  <div className="flex items-center gap-1.5">
-                    {isLocal && (
-                      <span className="text-[10px] text-gray-300 bg-gray-700/70 backdrop-blur-sm px-2 py-0.5 rounded-full font-medium">You</span>
-                    )}
-                    {isMuted && (
-                      <svg className="w-4 h-4 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            {/* Floating glass name badge - bottom center */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+              <div className="flex items-center gap-2 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                <span className="text-white text-sm font-semibold">{name}</span>
+                {isLocal && (
+                  <span className="text-[10px] text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full font-medium">You</span>
+                )}
+                {isMuted && (
+                  <div className="w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                       <line x1="1" y1="1" x2="23" y2="23" />
                       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-                      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.12 1.49-.34 2.18" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
                     </svg>
-                    )}
                   </div>
-                </div>
-
-                {/* Right: speaking bars */}
+                )}
                 {isSpeaking && (
-                  <div className="flex items-center gap-1">
-                    {[8, 12, 10].map((h, i) => (
+                  <div className="flex items-center gap-0.5">
+                    {[6, 10, 8].map((h, i) => (
                       <div
                         key={i}
-                        className="w-1.5 bg-green-400 rounded-full shadow-lg shadow-green-400/50"
+                        className="w-1 bg-green-400 rounded-full"
                         style={{
                           height: `${h}px`,
                           animation: `tile-bounce 0.6s ease-in-out infinite`,

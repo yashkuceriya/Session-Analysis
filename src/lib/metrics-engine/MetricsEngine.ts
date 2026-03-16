@@ -42,6 +42,15 @@ export class MetricsEngine {
   private studentSilenceStart: number | null = null;
   private sessionStartTime: number;
 
+  // Head movement and distraction tracking
+  private tutorHeadPoseHistory: { pitch: number; yaw: number; roll: number }[] = [];
+  private studentHeadPoseHistory: { pitch: number; yaw: number; roll: number }[] = [];
+  private distractionWindow = new RollingWindow<number>(60); // 30s at 2Hz
+  private focusStreakStart: number = 0;
+  private longestFocusStreak: number = 0;
+  private distractionEventCount: number = 0;
+  private lastDistracted: boolean = false;
+
   private engagementEMA = new EMA(0.15); // Slightly less sticky than before
 
   // Baseline tracking (first 2 minutes)
@@ -55,6 +64,53 @@ export class MetricsEngine {
     const typeWeights = SESSION_TYPE_WEIGHTS[sessionType];
     this.config = { ...typeWeights, ...config };
     this.sessionStartTime = Date.now();
+    this.focusStreakStart = Date.now();
+  }
+
+  private computeHeadMovement(
+    history: { pitch: number; yaw: number; roll: number }[],
+    currentPose: { pitch: number; yaw: number; roll: number }
+  ): number {
+    history.push(currentPose);
+    if (history.length > 30) history.splice(0, history.length - 30);
+    if (history.length < 2) return 0;
+
+    let totalMovement = 0;
+    for (let i = 1; i < history.length; i++) {
+      totalMovement += Math.abs(history[i].pitch - history[i - 1].pitch) +
+                       Math.abs(history[i].yaw - history[i - 1].yaw) +
+                       Math.abs(history[i].roll - history[i - 1].roll);
+    }
+    return Math.min(1, totalMovement / (history.length * 0.1));
+  }
+
+  private computeDistraction(
+    gazeDeviation: number,
+    eyeContact: number,
+    headMovement: number,
+    expression: import('../video-processor/types').ExpressionResult | null
+  ): number {
+    const gazeWeight = 0.35;
+    const eyeContactWeight = 0.30;
+    const movementWeight = 0.20;
+    const expressionWeight = 0.15;
+
+    const expressionDistraction = expression
+      ? (1 - expression.concentration) * 0.5 + (expression.confusion * 0.3) + (1 - (expression.interest ?? 0.5)) * 0.2
+      : 0.5;
+
+    return Math.min(1,
+      gazeDeviation * gazeWeight +
+      (1 - eyeContact) * eyeContactWeight +
+      headMovement * movementWeight +
+      expressionDistraction * expressionWeight
+    );
+  }
+
+  private estimatePosture(headTilt: number, pitch: number): 'upright' | 'leaning' | 'slouching' {
+    if (Math.abs(headTilt) > 0.3 || pitch > 0.2) return 'slouching';
+    if (Math.abs(headTilt) > 0.15 || Math.abs(pitch) > 0.1) return 'leaning';
+    return 'upright';
   }
 
   update(
@@ -124,6 +180,44 @@ export class MetricsEngine {
 
     const elapsedMs = timestamp - this.sessionStartTime;
 
+    // Head movement and distraction metrics
+    const tutorHeadMovement = tutorExpr ? this.computeHeadMovement(this.tutorHeadPoseHistory, {
+      pitch: tutorExpr.headTilt, // Use headTilt as proxy for pitch
+      yaw: 0,
+      roll: tutorExpr.headTilt,
+    }) : 0;
+
+    const studentHeadMovement = studentExpr ? this.computeHeadMovement(this.studentHeadPoseHistory, {
+      pitch: studentExpr.headTilt,
+      yaw: 0,
+      roll: studentExpr.headTilt,
+    }) : 0;
+
+    const tutorGazeDeviation = tutorGazeResult?.deviation ?? 0;
+    const studentGazeDeviation = studentGazeResult?.deviation ?? 0;
+
+    const tutorDistraction = this.computeDistraction(
+      tutorGazeDeviation,
+      tutorEyeContact,
+      tutorHeadMovement,
+      tutorExpr
+    );
+
+    const studentDistraction = this.computeDistraction(
+      studentGazeDeviation,
+      studentEyeContact,
+      studentHeadMovement,
+      studentExpr
+    );
+
+    // Blink rate (blinks per minute)
+    const tutorBlinkRate = this.tutorGaze.getBlinkRate();
+    const studentBlinkRate = this.studentGaze.getBlinkRate();
+
+    // Posture estimation
+    const tutorPosture = tutorExpr ? this.estimatePosture(tutorExpr.headTilt, tutorExpr.browFurrow) : 'upright';
+    const studentPosture = studentExpr ? this.estimatePosture(studentExpr.headTilt, studentExpr.browFurrow) : 'upright';
+
     // Build participant metrics
     const tutor: ParticipantMetrics = {
       eyeContactScore: tutorEyeContact,
@@ -134,6 +228,11 @@ export class MetricsEngine {
       eyeContactTrend: detectTrend(this.tutorEyeContactHistory),
       pitchVariance: tutorProsodyResult.pitchVariance,
       speechRate: tutorProsodyResult.speechRate,
+      headMovement: tutorHeadMovement,
+      blinkRate: tutorBlinkRate,
+      distractionScore: tutorDistraction,
+      gazeDeviation: tutorGazeDeviation,
+      posture: tutorPosture,
     };
 
     const student: ParticipantMetrics = {
@@ -145,6 +244,11 @@ export class MetricsEngine {
       eyeContactTrend: detectTrend(this.studentEyeContactHistory),
       pitchVariance: studentProsodyResult.pitchVariance,
       speechRate: studentProsodyResult.speechRate,
+      headMovement: studentHeadMovement,
+      blinkRate: studentBlinkRate,
+      distractionScore: studentDistraction,
+      gazeDeviation: studentGazeDeviation,
+      posture: studentPosture,
     };
 
     // Engagement score with temporal weighting
@@ -171,6 +275,29 @@ export class MetricsEngine {
       (student.eyeContactTrend === 'declining' && student.silenceDurationMs > 45000) ||
       (studentState === 'drifting' || studentState === 'struggling');
 
+    // Focus streak tracking
+    const isDistracted = studentDistraction > 0.6;
+    if (!isDistracted) {
+      if (this.lastDistracted) {
+        this.focusStreakStart = timestamp;
+      }
+      const currentStreak = timestamp - this.focusStreakStart;
+      if (currentStreak > this.longestFocusStreak) {
+        this.longestFocusStreak = currentStreak;
+      }
+    } else {
+      if (!this.lastDistracted) {
+        this.distractionEventCount++;
+      }
+    }
+    this.lastDistracted = isDistracted;
+    this.distractionWindow.push(studentDistraction);
+
+    // Average distraction in session
+    const avgDistraction = this.distractionWindow.length > 0
+      ? this.distractionWindow.average(d => d)
+      : 0;
+
     const session: SessionMetrics = {
       interruptionCount: this.interruptionDetector.getCount(),
       silenceDurationCurrent: Math.max(tutor.silenceDurationMs, student.silenceDurationMs),
@@ -180,6 +307,9 @@ export class MetricsEngine {
       turnTakingGapMs: turnTaking.avgTurnGapMs,
       turnCount: turnTaking.turnCount,
       studentState,
+      avgDistraction,
+      focusStreakMs: this.longestFocusStreak,
+      distractionEvents: this.distractionEventCount,
     };
 
     // Helper to convert ExpressionResult to ExpressionSnapshot
@@ -198,6 +328,8 @@ export class MetricsEngine {
         headShake: expr.headShake,
         mouthOpen: expr.mouthOpen,
         headTilt: expr.headTilt,
+        frustration: expr.frustration,
+        interest: expr.interest,
       };
     };
 
@@ -341,6 +473,13 @@ export class MetricsEngine {
     this.baselineEngagement = null;
     this.baselineSamples = 0;
     this.baselineSum = 0;
+    this.tutorHeadPoseHistory = [];
+    this.studentHeadPoseHistory = [];
+    this.distractionWindow.clear();
+    this.focusStreakStart = Date.now();
+    this.longestFocusStreak = 0;
+    this.distractionEventCount = 0;
+    this.lastDistracted = false;
     this.sessionStartTime = Date.now();
   }
 }

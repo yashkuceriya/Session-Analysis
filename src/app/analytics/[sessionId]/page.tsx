@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useMemo, useEffect, useState } from 'react';
 import { loadSession, StoredSession } from '@/lib/persistence/SessionStorage';
@@ -122,6 +123,15 @@ export default function AnalyticsPage() {
     const lastMetrics = metricsHistory[metricsHistory.length - 1];
     const durationMs = lastMetrics.session.elapsedMs;
 
+    // Distraction & Focus metrics
+    const avgDistraction = metricsHistory.reduce((sum, m) => sum + (m.student.distractionScore ?? 0), 0) / metricsHistory.length;
+    const maxFocusStreak = lastMetrics.session.focusStreakMs ?? 0;
+    const distractionEvents = lastMetrics.session.distractionEvents ?? 0;
+    const avgHeadMovement = metricsHistory.reduce((sum, m) => sum + (m.student.headMovement ?? 0), 0) / metricsHistory.length;
+    const avgBlinkRate = metricsHistory.length > 0
+      ? metricsHistory[metricsHistory.length - 1].student.blinkRate ?? 0
+      : 0;
+
     const keyMoments: { time: number; type: string; description: string }[] = [];
     for (let i = 1; i < metricsHistory.length; i++) {
       const prev = metricsHistory[i - 1];
@@ -181,6 +191,17 @@ export default function AnalyticsPage() {
       recommendations.push('Long pauses between speaker transitions — try encouraging quicker responses');
     }
 
+    // Distraction-based recommendations
+    if ((avgDistraction ?? 0) > 0.5) {
+      recommendations.push('High distraction levels detected — try shorter segments with interactive checkpoints');
+    }
+    if ((avgHeadMovement ?? 0) > 0.5) {
+      recommendations.push('Elevated head movement suggests restlessness — incorporate more hands-on activities');
+    }
+    if ((maxFocusStreak ?? 0) < 300000 && metricsHistory.length > 60) {
+      recommendations.push('Focus streaks were short — try the Pomodoro technique with 5-minute focused segments');
+    }
+
     if (recommendations.length === 0) {
       recommendations.push('Great session! Engagement levels were consistently strong');
     }
@@ -189,6 +210,11 @@ export default function AnalyticsPage() {
       avgEngagement: Math.round(avgEngagement),
       avgTutorEye: Math.round(avgTutorEye * 100),
       avgStudentEye: Math.round(avgStudentEye * 100),
+      avgDistraction: avgDistraction,
+      maxFocusStreak: maxFocusStreak,
+      distractionEvents: distractionEvents,
+      avgHeadMovement: avgHeadMovement,
+      avgBlinkRate: avgBlinkRate,
       talkTimeRatio: {
         tutor: Math.round(lastMetrics.tutor.talkTimePercent * 100),
         student: Math.round(lastMetrics.student.talkTimePercent * 100),
@@ -260,8 +286,24 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+      {/* Header Navigation */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)] bg-white/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span className="font-bold text-lg text-[var(--foreground)]">Nerdy</span>
+        </div>
+        <nav className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">Dashboard</Link>
+          <Link href="/" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">Home</Link>
+        </nav>
+      </header>
+
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-[var(--muted-light)] mb-4">
@@ -396,6 +438,30 @@ export default function AnalyticsPage() {
               <p className="text-xs text-[var(--muted-light)] mt-2">coaching tips</p>
             </div>
           </div>
+
+          {/* Additional Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="card p-4 bg-gradient-to-br from-violet-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Focus</p>
+              <p className="text-2xl font-bold text-[var(--foreground)]">{Math.round((1 - (summary.avgDistraction ?? 0)) * 100)}%</p>
+              <p className="text-xs text-[var(--muted-light)] mt-1">average</p>
+            </div>
+            <div className="card p-4 bg-gradient-to-br from-teal-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Interruptions</p>
+              <p className="text-2xl font-bold text-[var(--foreground)]">{summary.interruptions}</p>
+              <p className="text-xs text-[var(--muted-light)] mt-1">detected</p>
+            </div>
+            <div className="card p-4 bg-gradient-to-br from-rose-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Talk Ratio</p>
+              <p className="text-2xl font-bold text-[var(--foreground)]">{summary.talkTimeRatio.tutor}:{summary.talkTimeRatio.student}</p>
+              <p className="text-xs text-[var(--muted-light)] mt-1">tutor:student</p>
+            </div>
+            <div className="card p-4 bg-gradient-to-br from-cyan-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Eye Contact</p>
+              <p className="text-2xl font-bold text-[var(--foreground)]">{summary.avgStudentEye}%</p>
+              <p className="text-xs text-[var(--muted-light)] mt-1">{getEyeContactQuality(summary.avgStudentEye)}</p>
+            </div>
+          </div>
         </div>
 
         {/* ENGAGEMENT OVER TIME */}
@@ -492,6 +558,104 @@ export default function AnalyticsPage() {
             </div>
           </div>
         )}
+
+        {/* DISTRACTION & FOCUS ANALYSIS */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--card-border)]">
+            <svg className="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium">
+              Focus & Distraction Analysis
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="card p-5 bg-gradient-to-br from-violet-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Focus Score</p>
+              <p className="text-3xl font-bold text-[var(--foreground)]">{Math.round((1 - (summary.avgDistraction ?? 0)) * 100)}%</p>
+              <p className="text-xs text-[var(--muted-light)] mt-2">
+                {(summary.avgDistraction ?? 0) < 0.3 ? 'Excellent focus' : (summary.avgDistraction ?? 0) < 0.5 ? 'Good focus' : 'Needs improvement'}
+              </p>
+            </div>
+            <div className="card p-5 bg-gradient-to-br from-emerald-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Longest Focus Streak</p>
+              <p className="text-3xl font-bold text-[var(--foreground)]">{Math.round((summary.maxFocusStreak ?? 0) / 60000)}m</p>
+              <p className="text-xs text-[var(--muted-light)] mt-2">continuous focus</p>
+            </div>
+            <div className="card p-5 bg-gradient-to-br from-amber-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Distraction Events</p>
+              <p className="text-3xl font-bold text-[var(--foreground)]">{summary.distractionEvents ?? 0}</p>
+              <p className="text-xs text-[var(--muted-light)] mt-2">attention breaks</p>
+            </div>
+            <div className="card p-5 bg-gradient-to-br from-blue-50 to-transparent">
+              <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-2">Blink Rate</p>
+              <p className="text-3xl font-bold text-[var(--foreground)]">{Math.round(summary.avgBlinkRate ?? 0)}</p>
+              <p className="text-xs text-[var(--muted-light)] mt-2">blinks/min {(summary.avgBlinkRate ?? 0) > 25 ? '(elevated)' : '(normal)'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* MOVEMENT & POSTURE */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--card-border)]">
+            <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h2 className="text-xs uppercase tracking-wider text-[var(--muted-light)] font-medium">
+              Movement & Body Language
+            </h2>
+          </div>
+          <div className="card p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-3">Head Movement</p>
+                <div className="flex items-end gap-2 mb-2">
+                  <p className="text-2xl font-bold text-[var(--foreground)]">{Math.round((summary.avgHeadMovement ?? 0) * 100)}%</p>
+                  <p className="text-xs text-[var(--muted-light)] mb-1">activity</p>
+                </div>
+                <div className="h-2 bg-[var(--card-hover)] rounded-full overflow-hidden">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      (summary.avgHeadMovement ?? 0) > 0.6 ? 'bg-red-400' :
+                      (summary.avgHeadMovement ?? 0) > 0.3 ? 'bg-amber-400' :
+                      'bg-green-400'
+                    }`}
+                    style={{ width: `${Math.round((summary.avgHeadMovement ?? 0) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-[var(--muted-light)] mt-2">
+                  {(summary.avgHeadMovement ?? 0) > 0.6 ? 'High movement — possible restlessness' :
+                   (summary.avgHeadMovement ?? 0) > 0.3 ? 'Normal movement' :
+                   'Low movement — steady and focused'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--muted-light)] font-medium uppercase tracking-wider mb-3">Engagement Signals</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--muted)]">Head nods detected</span>
+                    <span className="text-sm font-semibold text-[var(--foreground)]">
+                      {metricsHistory.filter(m => (m.studentExpression?.headNod ?? 0) > 0.3).length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--muted)]">Smiles detected</span>
+                    <span className="text-sm font-semibold text-[var(--foreground)]">
+                      {metricsHistory.filter(m => (m.studentExpression?.smile ?? 0) > 0.4).length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--muted)]">Confusion moments</span>
+                    <span className="text-sm font-semibold text-[var(--foreground)]">
+                      {metricsHistory.filter(m => (m.studentExpression?.confusion ?? 0) > 0.4).length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* COMMUNICATION & INTERACTION */}
         <div className="mb-8">

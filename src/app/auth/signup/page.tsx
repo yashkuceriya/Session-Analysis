@@ -97,164 +97,197 @@ export default function SignupPage() {
   const isPasswordStrong = passwordStrength.minLength && passwordStrength.hasUppercase && passwordStrength.hasNumber;
 
   return (
-    <div className="min-h-screen text-[var(--foreground)] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent-light)] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-          <p className="text-[var(--muted)]">Join us to start analyzing tutoring sessions</p>
+        {/* Nerdy Branding */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-xl mb-4 shadow-lg shadow-[var(--accent)]/30">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Nerdy</h1>
+          <p className="text-[var(--muted)] text-sm">AI-Powered Tutoring Analysis</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
-              Full Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              name="name"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
-              required
-              disabled={isLoading}
-            />
+        {/* Signup Card */}
+        <div className="card p-8 shadow-lg shadow-[var(--accent)]/10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-1">Create Account</h2>
+            <p className="text-[var(--muted)] text-sm">Join us to start analyzing tutoring sessions</p>
           </div>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
-              required
-              disabled={isLoading}
-            />
-            {formData.password && (
-              <div className="mt-2 space-y-1 text-sm">
-                <div className={`flex items-center gap-2 ${passwordStrength.minLength ? 'text-green-400' : 'text-[var(--muted)]'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.minLength ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
-                  Min 8 characters
-                </div>
-                <div className={`flex items-center gap-2 ${passwordStrength.hasUppercase ? 'text-green-400' : 'text-[var(--muted)]'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasUppercase ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
-                  One uppercase letter
-                </div>
-                <div className={`flex items-center gap-2 ${passwordStrength.hasNumber ? 'text-green-400' : 'text-[var(--muted)]'}`}>
-                  <span className={`w-2 h-2 rounded-full ${passwordStrength.hasNumber ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
-                  One number
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+            {error && (
+              <div className="bg-[var(--danger-light)] border border-[var(--danger)] rounded-lg p-4 text-[var(--danger)] text-sm flex items-start gap-3">
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
               </div>
             )}
-          </div>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              name="confirmPassword"
-              placeholder="••••••••"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 rounded-lg card border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-[var(--accent)] transition-colors"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-3">I'm a...</label>
-            <div className="flex gap-3">
-              <label className="flex-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="tutor"
-                  checked={formData.role === 'tutor'}
-                  onChange={handleInputChange}
-                  className="sr-only"
-                  disabled={isLoading}
-                />
-                <div
-                  className={`p-3 text-center rounded-lg border transition-all ${
-                    formData.role === 'tutor'
-                      ? 'bg-[var(--accent)] border-[var(--accent)]'
-                      : 'card border-[var(--card-border)] hover:border-[var(--card-border)]'
-                  }`}
-                >
-                  Tutor
-                </div>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Full Name
               </label>
-              <label className="flex-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="student"
-                  checked={formData.role === 'student'}
-                  onChange={handleInputChange}
-                  className="sr-only"
-                  disabled={isLoading}
-                />
-                <div
-                  className={`p-3 text-center rounded-lg border transition-all ${
-                    formData.role === 'student'
-                      ? 'bg-[var(--accent)] border-[var(--accent)]'
-                      : 'card border-[var(--card-border)] hover:border-[var(--card-border)]'
-                  }`}
-                >
-                  Student
-                </div>
-              </label>
+              <input
+                id="name"
+                type="text"
+                name="name"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg bg-white border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-colors"
+                required
+                disabled={isLoading}
+              />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || !isPasswordStrong || formData.password !== formData.confirmPassword}
-            className="w-full py-2 px-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
-          >
-            {isLoading ? 'Creating account...' : 'Create Account'}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg bg-white border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-colors"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <p className="text-center text-[var(--muted)]">
-          Already have an account?{' '}
-          <Link href="/auth/login" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
-            Sign in
-          </Link>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg bg-white border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-colors"
+                required
+                disabled={isLoading}
+              />
+              {formData.password && (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className={`flex items-center gap-2 ${passwordStrength.minLength ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`}>
+                    <svg className={`w-4 h-4 flex-shrink-0 ${passwordStrength.minLength ? 'text-[var(--success)]' : 'text-[var(--muted-light)]'}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${passwordStrength.hasUppercase ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`}>
+                    <svg className={`w-4 h-4 flex-shrink-0 ${passwordStrength.hasUppercase ? 'text-[var(--success)]' : 'text-[var(--muted-light)]'}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>One uppercase letter (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${passwordStrength.hasNumber ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`}>
+                    <svg className={`w-4 h-4 flex-shrink-0 ${passwordStrength.hasNumber ? 'text-[var(--success)]' : 'text-[var(--muted-light)]'}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>One number (0-9)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg bg-white border border-[var(--card-border)] text-[var(--foreground)] placeholder-[var(--muted-light)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-colors"
+                required
+                disabled={isLoading}
+              />
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-sm text-[var(--danger)] mt-2">Passwords do not match</p>
+              )}
+            </div>
+
+            {/* Role Selector */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-3">What's your role?</label>
+              <div className="flex gap-3">
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="tutor"
+                    checked={formData.role === 'tutor'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    disabled={isLoading}
+                  />
+                  <div
+                    className={`p-4 text-center rounded-lg border-2 font-medium transition-all ${
+                      formData.role === 'tutor'
+                        ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                        : 'bg-white border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]'
+                    }`}
+                  >
+                    Tutor
+                  </div>
+                </label>
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={formData.role === 'student'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    disabled={isLoading}
+                  />
+                  <div
+                    className={`p-4 text-center rounded-lg border-2 font-medium transition-all ${
+                      formData.role === 'student'
+                        ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                        : 'bg-white border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]'
+                    }`}
+                  >
+                    Student
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || !isPasswordStrong || formData.password !== formData.confirmPassword || !formData.name || !formData.email}
+              className="w-full py-3 px-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-6"
+            >
+              {isLoading ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Sign in link */}
+          <p className="text-center text-sm text-[var(--muted)]">
+            Already have an account?{' '}
+            <Link href="/auth/login" className="font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer note */}
+        <p className="text-center text-xs text-[var(--muted-light)] mt-6">
+          By creating an account, you agree to our Terms of Service and Privacy Policy
         </p>
       </div>
     </div>

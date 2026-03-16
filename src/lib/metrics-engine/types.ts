@@ -13,6 +13,8 @@ export interface ExpressionSnapshot {
   headShake: number;    // 0-1
   mouthOpen: number;    // 0-1
   headTilt: number;     // radians
+  frustration?: number; // 0-1, derived from browFurrow + frown + low valence
+  interest?: number;    // 0-1, derived from browRaise + concentration + eye contact
 }
 
 export interface MetricSnapshot {
@@ -35,6 +37,11 @@ export interface ParticipantMetrics {
   eyeContactTrend: 'rising' | 'stable' | 'declining';
   pitchVariance: number; // Higher = more expressive
   speechRate: number; // 0-1, fraction of time speaking in recent window
+  headMovement?: number;     // 0-1, how much head is moving (fidgeting indicator)
+  blinkRate?: number;        // blinks per minute
+  distractionScore?: number; // 0-1, combined score of gaze deviation + movement + expression
+  gazeDeviation?: number;    // 0-1, how far off-center gaze is
+  posture?: 'upright' | 'leaning' | 'slouching'; // estimated from head position
 }
 
 export interface SessionMetrics {
@@ -46,6 +53,9 @@ export interface SessionMetrics {
   turnTakingGapMs: number;
   turnCount: number;
   studentState: StudentState;
+  avgDistraction?: number;   // 0-1, session average distraction
+  focusStreakMs?: number;    // longest continuous focus streak in ms
+  distractionEvents?: number; // count of distraction episodes
 }
 
 export type SessionType = 'lecture' | 'practice' | 'discussion';

@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
   // Protected routes - require authentication
   const protectedPatterns = [
     /^\/session(\/.*)?$/, // Matches /session AND /session/*
+    /^\/session-ended(\/.*)?$/, // Matches /session-ended AND /session-ended/*
     /^\/analytics(\/.*)?$/, // Matches /analytics AND /analytics/*
     /^\/dashboard(\/.*)?$/, // Matches /dashboard AND /dashboard/*
     /^\/reports(\/.*)?$/, // Matches /reports AND /reports/*

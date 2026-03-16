@@ -70,15 +70,15 @@ export function ControlsBar({
         ref={controlsRef}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`flex items-center gap-3 px-6 h-16 rounded-full bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/50 transition-all duration-300 pointer-events-auto mb-6 ${
-          isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`flex items-center gap-2 px-5 h-[68px] rounded-[22px] bg-gray-900/80 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/[0.08] transition-all duration-300 pointer-events-auto mb-8 ${
+          isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
         {/* Group 1: Mic & Camera */}
         <button
           onClick={toggleMic}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-            isMicEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-500'
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+            isMicEnabled ? 'bg-white/[0.08] hover:bg-white/[0.15]' : 'bg-red-500/90 hover:bg-red-400/90'
           }`}
           title={isMicEnabled ? 'Mute mic (M)' : 'Unmute mic (M)'}
         >
@@ -99,8 +99,8 @@ export function ControlsBar({
 
         <button
           onClick={toggleCamera}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-            isCameraEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-500'
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+            isCameraEnabled ? 'bg-white/[0.08] hover:bg-white/[0.15]' : 'bg-red-500/90 hover:bg-red-400/90'
           }`}
           title={isCameraEnabled ? 'Stop video (V)' : 'Start video (V)'}
         >
@@ -119,13 +119,13 @@ export function ControlsBar({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-700/50" />
+        <div className="h-7 w-px bg-white/[0.06]" />
 
         {/* Group 2: Screen Share & Chat */}
         <button
           onClick={() => isScreenSharing ? onStopScreenShare?.() : onStartScreenShare?.()}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-            isScreenSharing ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+            isScreenSharing ? 'bg-green-500/80 hover:bg-green-400/80' : 'bg-white/[0.08] hover:bg-white/[0.15]'
           }`}
           title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
         >
@@ -139,7 +139,7 @@ export function ControlsBar({
 
         <button
           onClick={toggleChat}
-          className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+          className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
           title="Chat"
         >
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,12 +151,12 @@ export function ControlsBar({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-700/50" />
+        <div className="h-7 w-px bg-white/[0.06]" />
 
         {/* Group 3: View Mode, HUD & Recording */}
         <button
           onClick={() => setViewMode(viewMode === 'gallery' ? 'speaker' : 'gallery')}
-          className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+          className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
           title={viewMode === 'gallery' ? 'Speaker view (G)' : 'Gallery view (G)'}
         >
           {viewMode === 'gallery' ? (
@@ -179,8 +179,8 @@ export function ControlsBar({
           <>
             <button
               onClick={toggleAnalysis}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-                isAnalysisVisible ? 'bg-purple-600 hover:bg-purple-500' : 'bg-gray-700 hover:bg-gray-600'
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isAnalysisVisible ? 'bg-purple-500/80 hover:bg-purple-400/80' : 'bg-white/[0.08] hover:bg-white/[0.15]'
               }`}
               title={isAnalysisVisible ? 'Hide Analysis (A)' : 'Show Analysis (A)'}
             >
@@ -200,8 +200,8 @@ export function ControlsBar({
 
             <button
               onClick={toggleHud}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-                isHudVisible ? 'bg-blue-600 hover:bg-blue-500' : 'bg-gray-700 hover:bg-gray-600'
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isHudVisible ? 'bg-blue-500/80 hover:bg-blue-400/80' : 'bg-white/[0.08] hover:bg-white/[0.15]'
               }`}
               title={isHudVisible ? 'Hide HUD (H)' : 'Show HUD (H)'}
             >
@@ -215,8 +215,8 @@ export function ControlsBar({
 
             <button
               onClick={() => isRecording ? onStopRecording?.() : onStartRecording?.()}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
-                isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 relative group ${
+                isRecording ? 'bg-red-500/90 hover:bg-red-400/90 animate-pulse' : 'bg-white/[0.08] hover:bg-white/[0.15]'
               }`}
               title={isRecording ? 'Stop recording' : 'Start recording'}
             >
@@ -238,7 +238,7 @@ export function ControlsBar({
           <>
             <button
               onClick={onToggleSettings}
-              className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+              className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
               title="Settings"
             >
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -252,7 +252,7 @@ export function ControlsBar({
 
             <button
               onClick={toggleSidebar}
-              className="w-11 h-11 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
+              className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] flex items-center justify-center transition-all duration-200 hover:scale-110 relative group"
               title="Analytics"
             >
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -268,8 +268,8 @@ export function ControlsBar({
         <button
           onClick={handleEndClick}
           disabled={isEnding}
-          className={`px-6 py-2.5 rounded-full flex items-center justify-center gap-2 transition-all duration-200 relative group font-semibold text-sm ${
-            isEnding ? 'bg-red-800 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500 hover:shadow-lg hover:shadow-red-600/50'
+          className={`px-7 py-2.5 rounded-full flex items-center justify-center gap-2 transition-all duration-200 relative group font-semibold text-sm ${
+            isEnding ? 'bg-red-700 cursor-not-allowed opacity-60' : 'bg-red-500 hover:bg-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'
           }`}
           title="End call"
         >
