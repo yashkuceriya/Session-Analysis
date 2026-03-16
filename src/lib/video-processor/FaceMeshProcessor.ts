@@ -15,6 +15,8 @@ export class FaceMeshProcessor {
   private landmarker: any = null;
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
+  private consecutiveLowConfidence = 0;
+  private _qualityWarning: string | null = null;
 
   async initialize(): Promise<void> {
     if (this.landmarker) return;
@@ -48,6 +50,35 @@ export class FaceMeshProcessor {
 
   private lastMediaPipeTimestamp = 0;
 
+  /**
+   * Estimate video brightness from the video element.
+   * Uses a small canvas sample to compute average luminance.
+   * Returns a value 0-255; below ~40 is considered low-light.
+   */
+  private estimateBrightness(videoElement: HTMLVideoElement): number {
+    try {
+      const canvas = document.createElement('canvas');
+      // Sample a small region in the center for speed
+      const sampleSize = 64;
+      canvas.width = sampleSize;
+      canvas.height = sampleSize;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return 128; // Default to mid-range if no context
+      ctx.drawImage(videoElement, 0, 0, sampleSize, sampleSize);
+      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+      const data = imageData.data;
+      let totalLuminance = 0;
+      const pixelCount = data.length / 4;
+      for (let i = 0; i < data.length; i += 4) {
+        // Perceived luminance: 0.299*R + 0.587*G + 0.114*B
+        totalLuminance += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+      return totalLuminance / pixelCount;
+    } catch {
+      return 128;
+    }
+  }
+
   processFrame(videoElement: HTMLVideoElement, wallClockTimestamp: number): FaceFrame | null {
     if (!this.landmarker) return null;
     if (videoElement.readyState < 2) return null;
@@ -55,6 +86,19 @@ export class FaceMeshProcessor {
     if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return null;
 
     try {
+      // Low-light / variable quality detection
+      // Check brightness periodically (every ~20 frames via consecutive null tracking)
+      if (this.consecutiveLowConfidence % 20 === 0) {
+        const brightness = this.estimateBrightness(videoElement);
+        if (brightness < 40) {
+          this._qualityWarning = 'low-light';
+        } else if (brightness < 70) {
+          this._qualityWarning = 'dim';
+        } else {
+          this._qualityWarning = null;
+        }
+      }
+
       // MediaPipe requires strictly monotonically increasing timestamps (performance.now() based)
       const mediaPipeTs = performance.now();
       if (mediaPipeTs <= this.lastMediaPipeTimestamp) return null;
@@ -62,8 +106,12 @@ export class FaceMeshProcessor {
 
       const results = this.landmarker.detectForVideo(videoElement, mediaPipeTs);
       if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
+        this.consecutiveLowConfidence++;
         return null;
       }
+
+      // Reset the consecutive miss counter on a successful detection
+      this.consecutiveLowConfidence = 0;
 
       // Extract blendshapes into a flat map
       let blendshapes: BlendshapeMap | null = null;
@@ -82,8 +130,16 @@ export class FaceMeshProcessor {
         timestamp: wallClockTimestamp,
       };
     } catch {
+      this.consecutiveLowConfidence++;
       return null;
     }
+  }
+
+  /** Returns a quality warning string if video conditions are suboptimal, or null if OK */
+  getQualityWarning(): string | null {
+    if (this._qualityWarning) return this._qualityWarning;
+    if (this.consecutiveLowConfidence > 15) return 'no-face-detected';
+    return null;
   }
 
   isReady(): boolean {

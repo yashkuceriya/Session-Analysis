@@ -16,7 +16,7 @@ const RIGHT_EYE_BOTTOM = 374;
 
 const DEFAULT_GAZE_THRESHOLD = 0.28; // Wider threshold — works without calibration for most webcam setups
 const BLINK_ASPECT_RATIO_THRESHOLD = 0.15;
-const AUTO_CALIBRATION_SAMPLES = 40; // ~10 seconds at 4Hz — auto-calibrate from initial gaze center
+const AUTO_CALIBRATION_SAMPLES = 20; // ~5 seconds at 4Hz — auto-calibrate from initial gaze center
 
 export interface GazeCalibration {
   centerX: number;

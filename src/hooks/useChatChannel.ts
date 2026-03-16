@@ -28,12 +28,17 @@ export function useChatChannel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const isChatOpenRef = useRef(false);
+  const processedCountRef = useRef(0);
 
-  // Process incoming DataChannel messages
+  // Process incoming DataChannel messages — only process new ones since last run
   useEffect(() => {
     if (!dataChannelMessages || dataChannelMessages.length === 0) return;
 
-    dataChannelMessages.forEach((rawMsg) => {
+    const newMessages = dataChannelMessages.slice(processedCountRef.current);
+    if (newMessages.length === 0) return;
+    processedCountRef.current = dataChannelMessages.length;
+
+    newMessages.forEach((rawMsg) => {
       try {
         const msg = typeof rawMsg === 'string' ? JSON.parse(rawMsg) : rawMsg;
 

@@ -94,11 +94,20 @@ export class ExpressionAnalyzer {
       Math.min(1, mouthOpen * 0.3 + browRaise * 0.2 + smile * 0.2 + eyeWide * 0.15 + browFurrow * 0.15)
     );
 
-    // Frustration: derived from browFurrow + frown + low valence
-    const frustration = Math.min(1, browFurrow * 0.4 + frown * 0.3 + (1 - valence) * 0.3);
+    // Frustration: browFurrow is the primary signal, frown secondary, mouth tension tertiary.
+    // Avoid using (1 - valence) since valence already incorporates frown/smile — that would double-count.
+    // Instead use jawClench (mouthPress) and lip pucker as tension signals.
+    const mouthPress = bs.mouthPress ?? 0;
+    const mouthPucker = bs.mouthPucker ?? 0;
+    const facialTension = Math.max(mouthPress, mouthPucker);
+    const frustration = Math.min(1, browFurrow * 0.45 + frown * 0.35 + facialTension * 0.2);
 
-    // Interest: derived from browRaise + concentration + eye contact
-    const interest = Math.min(1, browRaise * 0.3 + concentration * 0.3 + (1 - frown) * 0.2 + eyeWide * 0.2);
+    // Interest: browRaise + concentration + eyeWide (curiosity signals).
+    // Previous formula used (1 - frown) which biases interest high at baseline.
+    // Instead weight positive-curiosity signals directly and penalize with disengagement signals.
+    const interest = Math.min(1,
+      browRaise * 0.25 + concentration * 0.35 + eyeWide * 0.15 + smile * 0.1 + (1 - Math.max(frown, browFurrow)) * 0.15
+    );
 
     // Head pose from landmarks
     const headPose = this.estimateHeadPose(landmarks);
@@ -157,11 +166,11 @@ export class ExpressionAnalyzer {
     const valenceValue = Math.min(1, Math.max(0, valence));
     const concentrationValue = Math.min(1, Math.max(0, concentration));
 
-    // Frustration: derived from browFurrow + frown + low valence
-    const frustration = Math.min(1, browFurrow * 0.4 + frown * 0.3 + (1 - valenceValue) * 0.3);
+    // Frustration: browFurrow + frown as direct signals, avoid double-counting through valence
+    const frustration = Math.min(1, browFurrow * 0.5 + frown * 0.35 + (1 - smile) * 0.15);
 
-    // Interest: derived from browRaise + concentration + eye contact
-    const interest = Math.min(1, browRaise * 0.3 + concentrationValue * 0.3 + (1 - frown) * 0.2);
+    // Interest: browRaise + concentration + positive expression (avoid baseline-high bias from (1-frown))
+    const interest = Math.min(1, browRaise * 0.3 + concentrationValue * 0.35 + smile * 0.15 + (1 - Math.max(frown, browFurrow)) * 0.2);
 
     return {
       valence: valenceValue,

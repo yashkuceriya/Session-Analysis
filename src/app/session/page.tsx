@@ -7,21 +7,15 @@ import { VideoLayout } from '@/components/session/VideoLayout';
 import { FloatingSelfView } from '@/components/session/FloatingSelfView';
 import { ControlsBar } from '@/components/session/ControlsBar';
 import { SessionSkeleton } from '@/components/session/SessionSkeleton';
-// Analysis Overlays
-import { EngagementRing } from '@/components/session/EngagementRing';
-import { StateBadge } from '@/components/session/StateBadge';
-import { NudgeBanner } from '@/components/session/NudgeBanner';
-import { MetricsHUD } from '@/components/session/MetricsHUD';
+// Analysis Overlays (removed: EngagementRing, StateBadge, NudgeBanner, MetricsHUD — clean FaceTime-style UI)
 // Session panels
 import { MetricsSidebar } from '@/components/session/MetricsSidebar';
 import { NudgeHistory } from '@/components/session/NudgeHistory';
 import { NudgeSettingsPanel } from '@/components/settings/NudgeSettingsPanel';
 import { AccessibilityPanel } from '@/components/accessibility/AccessibilityPanel';
 import { ChatPanel } from '@/components/session/ChatPanel';
-// Recording & Screen Share
+// Recording & Connection
 import { RecordingIndicator } from '@/components/session/RecordingIndicator';
-import { ScreenShareBanner } from '@/components/session/ScreenShareBanner';
-import { ReactionOverlay } from '@/components/session/ReactionOverlay';
 import { ConnectionRecovery } from '@/components/session/ConnectionRecovery';
 import { QualityIndicator } from '@/components/session/QualityIndicator';
 // Error handling
@@ -91,6 +85,13 @@ function SessionPageInner() {
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'reconnecting'>('good');
   const [rtcPeerConnection, setRtcPeerConnection] = useState<RTCPeerConnection | null>(null);
 
+  // Chat: incoming data channel messages collected for useChatChannel
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [incomingChatMessages, setIncomingChatMessages] = useState<any[]>([]);
+
+  // Screen share: track whether the remote peer is screen sharing
+  const [remoteIsScreenSharing, setRemoteIsScreenSharing] = useState(false);
+
   // Store
   const isActive = useSessionStore((s) => s.isActive);
   const sessionId = useSessionStore((s) => s.sessionId);
@@ -149,8 +150,23 @@ function SessionPageInner() {
     downloadRecording,
   } = useRecording();
 
-  // Chat (basic local state — DataChannel integration when PeerConnectionV2 is used)
-  const { messages: chatMessages, sendMessage: chatSendMessage, unreadCount, markAsRead } = useChatChannel();
+  // Chat — wired to WebRTC DataChannel via PeerConnectionV2
+  const chatDataChannelSend = useCallback((msg: any) => {
+    if (peerRef.current) {
+      peerRef.current.sendData({
+        type: 'chat',
+        data: msg,
+        timestamp: Date.now(),
+      });
+    }
+  }, []);
+
+  const { messages: chatMessages, sendMessage: chatSendMessage, unreadCount, markAsRead } = useChatChannel({
+    dataChannelSend: chatDataChannelSend,
+    dataChannelMessages: incomingChatMessages,
+    userRole: role,
+    userName: role === 'tutor' ? sessionConfig.tutorName : sessionConfig.studentName,
+  });
 
   // Auto-hide controls
   const { isVisible: controlsVisible } = useAutoHide();
@@ -396,9 +412,15 @@ function SessionPageInner() {
         }
       },
       onDataMessage: (msg) => {
-        // Handle incoming data channel messages (chat, reactions)
+        // Handle incoming data channel messages (chat, reactions, screen share)
         if (msg.type === 'chat' && typeof msg.data === 'object' && msg.data !== null) {
-          // Could dispatch to chat — for now just log
+          // Dispatch to useChatChannel hook via state
+          setIncomingChatMessages((prev) => [...prev, msg.data]);
+        }
+        // Screen share state notification from remote peer
+        if (msg.type === 'screen-share' && typeof msg.data === 'object' && msg.data !== null) {
+          const shareData = msg.data as { active: boolean };
+          setRemoteIsScreenSharing(!!shareData.active);
         }
         // Session end: tutor ended the session — navigate student to session-ended page
         if (msg.type === 'end-session' && typeof msg.data === 'object' && msg.data !== null) {
@@ -537,6 +559,13 @@ function SessionPageInner() {
           videoSender.replaceTrack(videoTrack).catch(() => {});
         }
       }
+
+      // Notify remote peer that screen share stopped
+      peerRef.current.sendData({
+        type: 'screen-share',
+        data: { active: false },
+        timestamp: Date.now(),
+      });
     }
 
     // Restore self-view to camera
@@ -558,6 +587,13 @@ function SessionPageInner() {
         if (videoSender) {
           videoSender.replaceTrack(screenTrack).catch(() => {});
         }
+
+        // Notify remote peer that screen share started
+        peerRef.current.sendData({
+          type: 'screen-share',
+          data: { active: true },
+          timestamp: Date.now(),
+        });
 
         // Auto-restore camera when user clicks native "Stop sharing" button
         screenTrack.addEventListener('ended', () => {
@@ -687,9 +723,6 @@ function SessionPageInner() {
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden relative">
-      {/* Screen share banner — minimal top overlay */}
-      <ScreenShareBanner isSharing={isSharing} onStopSharing={handleStopScreenShare} />
-
       {/* Recording indicator — small top-left pill */}
       <RecordingIndicator
         isRecording={recIsRecording}
@@ -710,19 +743,14 @@ function SessionPageInner() {
         />
       )}
 
-      {/* Minimal connection status — small pill top-right (replaces the full room info bar) */}
+      {/* Room code + connection dot — tiny floating badge */}
       {isRoomMode && (
-        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-xl rounded-full px-3 py-1.5 border border-white/[0.06]">
-            <div className={`w-2 h-2 rounded-full transition-all ${
+        <div className="absolute top-3 right-3 z-30">
+          <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/[0.04]">
+            <div className={`w-1.5 h-1.5 rounded-full ${
               peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
             }`} />
-            <span className={`text-[11px] font-medium ${peerConnected ? 'text-green-400/80' : 'text-yellow-400/80'}`}>
-              {peerConnected ? 'Connected' : 'Waiting...'}
-            </span>
-            {peerConnected && (
-              <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
-            )}
+            <span className="text-[10px] font-mono text-white/40">{roomId}</span>
           </div>
         </div>
       )}
@@ -748,7 +776,7 @@ function SessionPageInner() {
                 const joinUrl = `${window.location.origin}/join/${roomId}`;
                 navigator.clipboard.writeText(joinUrl);
               }}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/[0.08] text-white/60 hover:text-white/90 hover:bg-white/15 transition-all text-xs"
+              className="pointer-events-auto inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/[0.08] text-white/60 hover:text-white/90 hover:bg-white/15 transition-all text-xs"
             >
               <span className="font-mono">{roomId}</span>
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -761,68 +789,29 @@ function SessionPageInner() {
 
       {/* Main content: full-bleed video layout */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Video area — edge-to-edge, small gap via padding */}
-        <div className="flex-1 relative min-h-0 min-w-0 p-1">
-          {/* Video layout — optionally wrapped with engagement ring */}
-          {isTutor && isAnalysisVisible ? (
-            <EngagementRing engagementScore={currentMetrics?.engagementScore ?? 50}>
-              <VideoLayout
-                tutorVideoRef={tutorVideoRef}
-                studentVideoRef={studentVideoRef}
-                localVideoRef={localVideoRef}
-                tutorStream={tutorStream}
-                studentStream={studentStream}
-                demoVideoSrc={!isRoomMode ? '/demo/student-sample.mp4' : undefined}
-                tutorLabel={tutorLabel}
-                studentLabel={studentLabel}
-                viewMode={viewMode}
-                activeSpeaker={activeSpeaker}
-                showOverlays={true}
-                localRole={role}
-                isRoomMode={isRoomMode}
-              />
-            </EngagementRing>
-          ) : (
-            <VideoLayout
-              tutorVideoRef={tutorVideoRef}
-              studentVideoRef={studentVideoRef}
-              localVideoRef={localVideoRef}
-              tutorStream={tutorStream}
-              studentStream={studentStream}
-              demoVideoSrc={!isRoomMode ? '/demo/student-sample.mp4' : undefined}
-              tutorLabel={tutorLabel}
-              studentLabel={studentLabel}
-              viewMode={viewMode}
-              activeSpeaker={activeSpeaker}
-              showOverlays={isTutor && isAnalysisVisible}
-              localRole={role}
-              isRoomMode={isRoomMode}
-            />
-          )}
-
-          {/* Analysis overlays — only visible to tutors when analysis is enabled */}
-          {isTutor && isAnalysisVisible && (
-            <>
-              {/* Student state badge (on student video area) */}
-              {currentMetrics && (
-                <StateBadge
-                  state={currentMetrics.studentState}
-                  silenceDurationMs={currentMetrics.student.silenceDurationMs}
-                  talkTimePercent={currentMetrics.student.talkTimePercent}
-                />
-              )}
-
-              {/* Nudge banners — top of video area */}
-              <NudgeBanner nudges={activeNudges} onDismiss={dismissNudge} />
-            </>
-          )}
-
-          {/* Reactions overlay */}
-          <ReactionOverlay reactions={reactions} />
+        {/* Video area — edge-to-edge, no padding for maximum screen usage */}
+        <div className="flex-1 relative min-h-0 min-w-0">
+          <VideoLayout
+            tutorVideoRef={tutorVideoRef}
+            studentVideoRef={studentVideoRef}
+            localVideoRef={localVideoRef}
+            tutorStream={tutorStream}
+            studentStream={studentStream}
+            demoVideoSrc={!isRoomMode ? '/demo/student-sample.mp4' : undefined}
+            tutorLabel={tutorLabel}
+            studentLabel={studentLabel}
+            viewMode={viewMode}
+            activeSpeaker={activeSpeaker}
+            showOverlays={isTutor && isAnalysisVisible}
+            localRole={role}
+            isRoomMode={isRoomMode}
+            isScreenSharing={isSharing}
+            remoteIsScreenSharing={remoteIsScreenSharing}
+          />
 
           {/* Face model loading indicator */}
           {isActive && !localFaceMesh.isModelLoaded && (
-            <div className={`absolute top-4 left-4 z-20 ${localFaceMesh.modelError ? 'bg-red-900/70 text-red-200' : 'bg-black/50 text-white/60'} text-xs px-3 py-1.5 rounded-full backdrop-blur-xl border border-white/[0.06]`}>
+            <div className={`absolute top-3 left-3 z-20 ${localFaceMesh.modelError ? 'bg-red-900/70 text-red-200' : 'bg-black/40 text-white/50'} text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md border border-white/[0.04]`}>
               {localFaceMesh.modelError
                 ? `Face detection unavailable: ${localFaceMesh.modelError}`
                 : 'Loading face detection...'}
@@ -841,7 +830,7 @@ function SessionPageInner() {
           />
         )}
 
-        {/* Sidebar (when toggled — analytics panel) — only visible to tutors */}
+        {/* Sidebar (when toggled — analytics panel) — only visible to tutors, defaults closed */}
         {isTutor && isSidebarOpen && (
           <div className="flex flex-col w-72 border-l border-white/[0.06] bg-black/90 backdrop-blur-xl z-30">
             <MetricsSidebar />
@@ -858,9 +847,6 @@ function SessionPageInner() {
           unreadCount={unreadCount}
         />
       </div>
-
-      {/* Metrics HUD overlay — only visible to tutors when both HUD and analysis are enabled */}
-      <MetricsHUD visible={isTutor && isHudVisible && isAnalysisVisible} />
 
       {/* Floating controls bar — FaceTime-style pill */}
       <ControlsBar
