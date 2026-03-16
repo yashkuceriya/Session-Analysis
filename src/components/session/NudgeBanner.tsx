@@ -93,12 +93,12 @@ export function NudgeBanner({ nudges, onDismiss }: NudgeBannerProps) {
 
   return (
     <div
-      className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-25 transition-all duration-500 ease-out ${
-        isVisible && !isDismissing ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-6 pointer-events-none'
+      className={`fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-out ${
+        isVisible && !isDismissing ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
       }`}
     >
       <div
-        className={`${getPriorityColor(topNudge.priority)} border backdrop-blur-xl rounded-2xl px-5 py-3.5 shadow-2xl max-w-sm flex items-center gap-3.5 relative overflow-hidden`}
+        className={`${getPriorityColor(topNudge.priority)} border backdrop-blur-xl rounded-2xl px-5 py-3.5 shadow-2xl max-w-md flex items-center gap-3.5 relative overflow-hidden`}
       >
         {/* Left accent border */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${getPriorityAccent(topNudge.priority)}`} />
