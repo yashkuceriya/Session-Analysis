@@ -14,8 +14,9 @@ const LEFT_EYE_BOTTOM = 145;
 const RIGHT_EYE_TOP = 386;
 const RIGHT_EYE_BOTTOM = 374;
 
-const DEFAULT_GAZE_THRESHOLD = 0.18;
+const DEFAULT_GAZE_THRESHOLD = 0.28; // Wider threshold — works without calibration for most webcam setups
 const BLINK_ASPECT_RATIO_THRESHOLD = 0.15;
+const AUTO_CALIBRATION_SAMPLES = 40; // ~10 seconds at 4Hz — auto-calibrate from initial gaze center
 
 export interface GazeCalibration {
   centerX: number;
@@ -32,6 +33,9 @@ export class GazeEstimator {
   private blinkCount = 0;
   private blinkTimestamps: number[] = [];
   private wasBlinking = false;
+  // Auto-calibration: silently collect initial samples to find the user's natural "looking at camera" center
+  private autoCalSamples: { x: number; y: number }[] = [];
+  private autoCalDone = false;
 
   estimate(landmarks: FaceLandmark[]): GazeResult | null {
     if (!landmarks || landmarks.length < 478) return null;
@@ -76,6 +80,27 @@ export class GazeEstimator {
     if (this.isCalibrating) {
       this.calibrationSamples.push({ x: avgX, y: avgY });
       // Don't return results during calibration to avoid noise
+    }
+
+    // Auto-calibration: silently determine the user's natural gaze center
+    // from the first ~10 seconds of data (assumes user is roughly looking at camera initially)
+    if (!this.autoCalDone && !this.calibration) {
+      this.autoCalSamples.push({ x: avgX, y: avgY });
+      if (this.autoCalSamples.length >= AUTO_CALIBRATION_SAMPLES) {
+        const xs = this.autoCalSamples.map(s => s.x);
+        const ys = this.autoCalSamples.map(s => s.y);
+        const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
+        const meanY = ys.reduce((a, b) => a + b, 0) / ys.length;
+        // Only auto-calibrate if the center is reasonably close to 0.5 (user was looking at camera)
+        if (Math.abs(meanX - 0.5) < 0.25 && Math.abs(meanY - 0.5) < 0.3) {
+          this.calibration = {
+            centerX: meanX,
+            centerY: meanY,
+            threshold: DEFAULT_GAZE_THRESHOLD,
+          };
+        }
+        this.autoCalDone = true;
+      }
     }
 
     const smoothedX = this.smoothX.update(avgX);
@@ -193,5 +218,6 @@ export class GazeEstimator {
     this.blinkTimestamps = [];
     this.wasBlinking = false;
     // Don't reset calibration — it should persist for the session
+    // Don't reset autoCalDone — recalibrating mid-session would be disruptive
   }
 }

@@ -33,6 +33,6 @@ export interface CoachingConfig {
 export const DEFAULT_COACHING_CONFIG: CoachingConfig = {
   sensitivity: 'high',
   enabled: true,
-  minIntervalMs: 15000,
+  minIntervalMs: 5000,
   disabledRules: [],
 };

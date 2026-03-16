@@ -38,6 +38,9 @@ export class MetricsEngine {
   private engagementHistory: number[] = [];
   private tutorEyeContactHistory: number[] = [];
   private studentEyeContactHistory: number[] = [];
+  // Track actual face detections (separate from eye contact window which always gets pushed to)
+  private tutorFaceDetections = new RollingWindow<boolean>(30); // Last 15s at 2Hz
+  private studentFaceDetections = new RollingWindow<boolean>(30);
   private studentStateHistory = new RollingWindow<StudentState>(20); // Last 10s
 
   private tutorSilenceStart: number | null = null;
@@ -144,12 +147,22 @@ export class MetricsEngine {
     const tutorExpr = tutorFace ? this.tutorExpression.analyze(tutorFace.landmarks, tutorFace.blendshapes) : null;
     const studentExpr = studentFace ? this.studentExpression.analyze(studentFace.landmarks, studentFace.blendshapes) : null;
 
-    // Eye contact tracking (expanded to 120 samples = 60s)
-    this.tutorEyeContactWindow.push(tutorGazeResult?.isLookingAtCamera ?? false);
-    this.studentEyeContactWindow.push(studentGazeResult?.isLookingAtCamera ?? false);
+    // Track whether face was actually detected this frame
+    this.tutorFaceDetections.push(tutorGazeResult !== null);
+    this.studentFaceDetections.push(studentGazeResult !== null);
 
-    const tutorEyeContact = this.tutorEyeContactWindow.ratio(v => v);
-    const studentEyeContact = this.studentEyeContactWindow.ratio(v => v);
+    // Eye contact tracking — only push when face is detected (avoid polluting window with false negatives)
+    if (tutorGazeResult) {
+      this.tutorEyeContactWindow.push(tutorGazeResult.isLookingAtCamera);
+    }
+    if (studentGazeResult) {
+      this.studentEyeContactWindow.push(studentGazeResult.isLookingAtCamera);
+    }
+
+    const tutorEyeContact = this.tutorEyeContactWindow.length > 0
+      ? this.tutorEyeContactWindow.ratio(v => v) : 0;
+    const studentEyeContact = this.studentEyeContactWindow.length > 0
+      ? this.studentEyeContactWindow.ratio(v => v) : 0;
 
     this.tutorEyeContactHistory.push(tutorEyeContact);
     if (this.tutorEyeContactHistory.length > 600) {
@@ -288,7 +301,7 @@ export class MetricsEngine {
 
     // Attention drift: multi-signal detection
     const attentionDriftDetected =
-      (student.eyeContactTrend === 'declining' && student.silenceDurationMs > 45000) ||
+      (student.eyeContactTrend === 'declining' && student.silenceDurationMs > 10000) ||
       (studentState === 'drifting' || studentState === 'struggling');
 
     // Focus streak tracking
@@ -368,10 +381,10 @@ export class MetricsEngine {
     engagement: number,
     elapsedMs: number
   ): StudentState {
-    if (elapsedMs < 30000) return 'engaged';
+    if (elapsedMs < 8000) return 'engaged'; // Brief warmup before classifying
 
     const eyeContactLow = student.eyeContactScore < 0.3;
-    const silenceLong = student.silenceDurationMs > 60000;
+    const silenceLong = student.silenceDurationMs > 15000;
     const energyLow = student.energyScore < 0.25;
     const engagementLow = engagement < 0.4;
     const eyeContactDeclining = student.eyeContactTrend === 'declining';
@@ -399,7 +412,7 @@ export class MetricsEngine {
     }
 
     // Drifting: looking away + silence + no concentration face
-    if (eyeContactDeclining && eyeContactLow && student.silenceDurationMs > 30000 && concentration < 0.3) {
+    if (eyeContactDeclining && eyeContactLow && student.silenceDurationMs > 8000 && concentration < 0.3) {
       return 'drifting';
     }
 
@@ -420,9 +433,13 @@ export class MetricsEngine {
     const c = this.config;
     const ideal = IDEAL_TALK_RATIOS[c.sessionType];
 
-    // Detect whether face data is available (eye contact > 0 or explicitly tracked)
-    const hasTutorFace = this.tutorEyeContactWindow.length > 5;
-    const hasStudentFace = this.studentEyeContactWindow.length > 5;
+    // Detect whether face data is actually available (at least 20% face detection rate in recent window)
+    const tutorFaceRate = this.tutorFaceDetections.length > 0
+      ? this.tutorFaceDetections.ratio(v => v) : 0;
+    const studentFaceRate = this.studentFaceDetections.length > 0
+      ? this.studentFaceDetections.ratio(v => v) : 0;
+    const hasTutorFace = tutorFaceRate > 0.2;
+    const hasStudentFace = studentFaceRate > 0.2;
     const hasFaceData = hasTutorFace || hasStudentFace;
 
     // Eye contact: average of both participants (default to 0.5 if no face data)
