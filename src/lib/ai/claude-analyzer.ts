@@ -291,18 +291,21 @@ Respond in this exact JSON format (no markdown wrapping, pure JSON):
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
-  // Strip markdown code block wrapping if present
+  // Strip markdown code block wrapping if present (handles ```json, ```JSON, ``` etc.)
   let jsonText = text.trim();
-  if (jsonText.startsWith('```json')) {
-    jsonText = jsonText.slice(7);
+  const codeBlockMatch = jsonText.match(/^```(?:json|JSON)?\s*\n?([\s\S]*?)```\s*$/);
+  if (codeBlockMatch) {
+    jsonText = codeBlockMatch[1].trim();
+  } else {
+    // Fallback: strip leading/trailing fences individually
+    if (/^```(?:json|JSON)?/.test(jsonText)) {
+      jsonText = jsonText.replace(/^```(?:json|JSON)?\s*\n?/, '');
+    }
+    if (jsonText.endsWith('```')) {
+      jsonText = jsonText.slice(0, -3);
+    }
+    jsonText = jsonText.trim();
   }
-  if (jsonText.startsWith('```')) {
-    jsonText = jsonText.slice(3);
-  }
-  if (jsonText.endsWith('```')) {
-    jsonText = jsonText.slice(0, -3);
-  }
-  jsonText = jsonText.trim();
 
   try {
     return JSON.parse(jsonText) as AISessionAnalysis;

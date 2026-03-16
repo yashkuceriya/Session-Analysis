@@ -106,8 +106,14 @@ export function AIAnalysis({ sessionId, metricsHistory, nudgeHistory, sessionCon
         body: JSON.stringify({ metrics, nudges, config }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Analysis failed');
+        let errorMsg = `Analysis failed (HTTP ${res.status})`;
+        try {
+          const data = await res.json();
+          if (data.error) errorMsg = data.error;
+        } catch {
+          // Response wasn't JSON, use default message
+        }
+        throw new Error(errorMsg);
       }
       setAnalysis(await res.json());
     } catch (err) {
@@ -138,6 +144,16 @@ export function AIAnalysis({ sessionId, metricsHistory, nudgeHistory, sessionCon
               <div>
                 <p className="text-red-400 text-xs font-medium mb-1">Configuration Required</p>
                 <p className="text-red-400/80 text-xs">AI analysis requires <code className="bg-red-500/20 px-1 rounded">ANTHROPIC_API_KEY</code> environment variable. Set it in your <code className="bg-red-500/20 px-1 rounded">.env.local</code> file to enable AI-powered coaching feedback.</p>
+              </div>
+            ) : error.includes('No session data') ? (
+              <div>
+                <p className="text-red-400 text-xs font-medium mb-1">No Data Available</p>
+                <p className="text-red-400/80 text-xs">No session metrics were found. Make sure you have an active or completed session with recorded data before generating a report.</p>
+              </div>
+            ) : error.includes('rate limit') ? (
+              <div>
+                <p className="text-red-400 text-xs font-medium mb-1">Rate Limited</p>
+                <p className="text-red-400/80 text-xs">The AI service is temporarily rate limited. Please wait a moment and try again.</p>
               </div>
             ) : (
               <p className="text-red-400 text-xs">{error}</p>

@@ -54,6 +54,17 @@ export async function POST(
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('AI analysis error:', error);
-    return NextResponse.json({ error: 'Analysis failed — check server logs for details' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    // Surface actionable messages to the client
+    if (message.includes('ANTHROPIC_API_KEY')) {
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
+    if (message.includes('authentication') || message.includes('401') || message.includes('invalid x-api-key')) {
+      return NextResponse.json({ error: 'Invalid ANTHROPIC_API_KEY. Check your .env.local file.' }, { status: 401 });
+    }
+    if (message.includes('rate limit') || message.includes('429')) {
+      return NextResponse.json({ error: 'AI rate limit reached. Please wait a moment and try again.' }, { status: 429 });
+    }
+    return NextResponse.json({ error: `Analysis failed: ${message}` }, { status: 500 });
   }
 }

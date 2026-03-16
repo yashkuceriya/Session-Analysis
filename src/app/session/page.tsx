@@ -7,13 +7,11 @@ import { VideoLayout } from '@/components/session/VideoLayout';
 import { FloatingSelfView } from '@/components/session/FloatingSelfView';
 import { ControlsBar } from '@/components/session/ControlsBar';
 import { SessionSkeleton } from '@/components/session/SessionSkeleton';
-import { SessionTimer } from '@/components/session/SessionTimer';
 // Analysis Overlays
 import { EngagementRing } from '@/components/session/EngagementRing';
 import { StateBadge } from '@/components/session/StateBadge';
 import { NudgeBanner } from '@/components/session/NudgeBanner';
 import { MetricsHUD } from '@/components/session/MetricsHUD';
-import { TimelineStrip } from '@/components/session/TimelineStrip';
 // Session panels
 import { MetricsSidebar } from '@/components/session/MetricsSidebar';
 import { NudgeHistory } from '@/components/session/NudgeHistory';
@@ -656,9 +654,6 @@ function SessionPageInner() {
   const tutorStream = role === 'tutor' ? localStream : remoteStream;
   const studentStream = role === 'student' ? localStream : remoteStream;
 
-  // Combined metrics history for timeline
-  const fullHistory = useMemo(() => [...metricsArchive, ...metricsHistory], [metricsArchive, metricsHistory]);
-
   if (!streamReady && !streamError) {
     return <SessionSkeleton />;
   }
@@ -691,11 +686,11 @@ function SessionPageInner() {
   }
 
   return (
-    <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
-      {/* Screen share banner */}
+    <div className="h-screen bg-black flex flex-col overflow-hidden relative">
+      {/* Screen share banner — minimal top overlay */}
       <ScreenShareBanner isSharing={isSharing} onStopSharing={handleStopScreenShare} />
 
-      {/* Recording indicator */}
+      {/* Recording indicator — small top-left pill */}
       <RecordingIndicator
         isRecording={recIsRecording}
         duration={recDuration}
@@ -715,93 +710,59 @@ function SessionPageInner() {
         />
       )}
 
-      {/* Room mode status bar — centered top, glassmorphic */}
+      {/* Minimal connection status — small pill top-right (replaces the full room info bar) */}
       {isRoomMode && (
-        <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-center px-4 py-3 bg-gray-900/50 backdrop-blur-xl border-b border-gray-800/30">
-          <div className="flex items-center gap-8 max-w-2xl w-full">
-            {/* Left: Room info */}
-            <div className="flex items-center gap-3 flex-1">
-              <span className="text-gray-500 text-xs font-mono bg-gray-800/50 px-2.5 py-1 rounded-lg">
-                {roomId}
-              </span>
-              <button
-                onClick={() => {
-                  const joinUrl = `${window.location.origin}/join/${roomId}`;
-                  navigator.clipboard.writeText(joinUrl).then(() => {
-                    // Show brief copied feedback (tooltip would be nice)
-                  });
-                }}
-                className="text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors hover:underline"
-              >
-                Copy Link
-              </button>
-            </div>
-
-            {/* Center: Timer */}
-            <div className="flex items-center gap-2">
-              <SessionTimer />
-            </div>
-
-            {/* Right: Connection status */}
-            <div className="flex items-center gap-3 flex-1 justify-end">
-              <div className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
-                }`} />
-                <span className={`text-xs font-medium ${peerConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {peerConnected ? 'Connected' : 'Waiting...'}
-                </span>
-              </div>
-              {peerConnected && (
-                <div className="flex items-center gap-2 pl-3 border-l border-gray-700/50">
-                  <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
-                </div>
-              )}
-            </div>
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-xl rounded-full px-3 py-1.5 border border-white/[0.06]">
+            <div className={`w-2 h-2 rounded-full transition-all ${
+              peerConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+            }`} />
+            <span className={`text-[11px] font-medium ${peerConnected ? 'text-green-400/80' : 'text-yellow-400/80'}`}>
+              {peerConnected ? 'Connected' : 'Waiting...'}
+            </span>
+            {peerConnected && (
+              <QualityIndicator quality={streamQuality} bandwidth={streamBandwidth} />
+            )}
           </div>
         </div>
       )}
 
       {/* Waiting for peer overlay */}
       {isRoomMode && !peerConnected && (
-        <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+        <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
           <div className="text-center">
             <div className="mb-6 flex justify-center">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center animate-pulse">
-                <div className="w-10 h-10 rounded-full bg-gray-950 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                </div>
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <svg className="w-6 h-6 text-white/50 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
               </div>
             </div>
-            <h3 className="text-white text-xl font-semibold mb-2">
-              {role === 'student' ? 'Waiting for your tutor to join...' : 'Waiting for student to join...'}
+            <h3 className="text-white text-lg font-medium mb-2">
+              {role === 'student' ? 'Waiting for your tutor...' : 'Waiting for student...'}
             </h3>
-            <p className="text-gray-400 text-sm mb-4">Share the invite link to get started</p>
-            <div className="inline-flex items-center gap-2 bg-gray-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-gray-800">
-              <span className="text-gray-500 text-xs font-mono">{roomId}</span>
-              <button
-                onClick={() => {
-                  const joinUrl = `${window.location.origin}/join/${roomId}`;
-                  navigator.clipboard.writeText(joinUrl).then(() => {
-                    // Copied
-                  });
-                }}
-                className="text-blue-400 hover:text-blue-300 text-xs transition-colors"
-              >
-                Copy link
-              </button>
-            </div>
+            <p className="text-white/40 text-sm mb-4">Share the invite link to get started</p>
+            <button
+              onClick={() => {
+                const joinUrl = `${window.location.origin}/join/${roomId}`;
+                navigator.clipboard.writeText(joinUrl);
+              }}
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/[0.08] text-white/60 hover:text-white/90 hover:bg-white/15 transition-all text-xs"
+            >
+              <span className="font-mono">{roomId}</span>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Main content: video-first layout */}
+      {/* Main content: full-bleed video layout */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Video area — flex-1 + min-h-0 ensures tiles fill height */}
-        <div className="flex-1 relative min-h-0 min-w-0">
+        {/* Video area — edge-to-edge, small gap via padding */}
+        <div className="flex-1 relative min-h-0 min-w-0 p-1">
           {/* Video layout — optionally wrapped with engagement ring */}
           {isTutor && isAnalysisVisible ? (
             <EngagementRing engagementScore={currentMetrics?.engagementScore ?? 50}>
@@ -853,9 +814,6 @@ function SessionPageInner() {
 
               {/* Nudge banners — top of video area */}
               <NudgeBanner nudges={activeNudges} onDismiss={dismissNudge} />
-
-              {/* Engagement timeline strip — bottom of video area */}
-              <TimelineStrip metricsHistory={fullHistory} nudgeHistory={nudgeHistory} />
             </>
           )}
 
@@ -864,10 +822,10 @@ function SessionPageInner() {
 
           {/* Face model loading indicator */}
           {isActive && !localFaceMesh.isModelLoaded && (
-            <div className={`absolute top-14 left-3 z-20 ${localFaceMesh.modelError ? 'bg-red-900/80 text-red-200' : 'bg-blue-900/80 text-blue-200'} text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm`}>
+            <div className={`absolute top-4 left-4 z-20 ${localFaceMesh.modelError ? 'bg-red-900/70 text-red-200' : 'bg-black/50 text-white/60'} text-xs px-3 py-1.5 rounded-full backdrop-blur-xl border border-white/[0.06]`}>
               {localFaceMesh.modelError
                 ? `Face detection unavailable: ${localFaceMesh.modelError}`
-                : 'Loading face detection model...'}
+                : 'Loading face detection...'}
             </div>
           )}
         </div>
@@ -885,7 +843,7 @@ function SessionPageInner() {
 
         {/* Sidebar (when toggled — analytics panel) — only visible to tutors */}
         {isTutor && isSidebarOpen && (
-          <div className="flex flex-col w-72 border-l border-gray-800 bg-gray-950 z-30">
+          <div className="flex flex-col w-72 border-l border-white/[0.06] bg-black/90 backdrop-blur-xl z-30">
             <MetricsSidebar />
             <NudgeHistory />
           </div>
@@ -904,7 +862,7 @@ function SessionPageInner() {
       {/* Metrics HUD overlay — only visible to tutors when both HUD and analysis are enabled */}
       <MetricsHUD visible={isTutor && isHudVisible && isAnalysisVisible} />
 
-      {/* Floating controls bar */}
+      {/* Floating controls bar — FaceTime-style pill */}
       <ControlsBar
         onEndSession={handleEndSession}
         onToggleSettings={() => setShowSettings(!showSettings)}
@@ -929,11 +887,10 @@ function SessionPageInner() {
       {/* Keyboard shortcuts help modal */}
       <KeyboardShortcutsHelp isOpen={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
-      {/* Hidden audio element — plays remote participant audio (video elements are muted for autoplay) */}
+      {/* Hidden audio element — plays remote participant audio */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
 
-      {/* Hidden video elements for face mesh processing — always rendered, dedicated refs, decoupled from UI */}
-      {/* Must have real dimensions (not 1px) for MediaPipe to detect faces, positioned off-screen */}
+      {/* Hidden video elements for face mesh processing */}
       <video
         ref={localFaceMeshRef}
         autoPlay
