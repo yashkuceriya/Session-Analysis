@@ -46,12 +46,21 @@ export class FaceMeshProcessor {
     }
   }
 
-  processFrame(videoElement: HTMLVideoElement, timestamp: number): FaceFrame | null {
+  private lastMediaPipeTimestamp = 0;
+
+  processFrame(videoElement: HTMLVideoElement, wallClockTimestamp: number): FaceFrame | null {
     if (!this.landmarker) return null;
     if (videoElement.readyState < 2) return null;
+    // Video must have real dimensions for MediaPipe to process
+    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return null;
 
     try {
-      const results = this.landmarker.detectForVideo(videoElement, timestamp);
+      // MediaPipe requires strictly monotonically increasing timestamps (performance.now() based)
+      const mediaPipeTs = performance.now();
+      if (mediaPipeTs <= this.lastMediaPipeTimestamp) return null;
+      this.lastMediaPipeTimestamp = mediaPipeTs;
+
+      const results = this.landmarker.detectForVideo(videoElement, mediaPipeTs);
       if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
         return null;
       }
@@ -69,7 +78,8 @@ export class FaceMeshProcessor {
       return {
         landmarks: results.faceLandmarks[0],
         blendshapes,
-        timestamp,
+        // Use wall-clock timestamp (Date.now()) so staleness checks work correctly
+        timestamp: wallClockTimestamp,
       };
     } catch {
       return null;

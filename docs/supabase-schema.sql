@@ -63,6 +63,21 @@ CREATE INDEX IF NOT EXISTS idx_nudges_timestamp ON nudge_history(timestamp);
 CREATE INDEX IF NOT EXISTS idx_nudges_created_at ON nudge_history(created_at);
 
 -- ─────────────────────────────────────────────────────────────────────
+-- TRANSCRIPT SEGMENTS TABLE
+-- ─────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS transcript_segments (
+  id BIGSERIAL PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  speaker TEXT NOT NULL CHECK (speaker IN ('tutor', 'student')),
+  text TEXT NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_transcript_session_id ON transcript_segments(session_id);
+CREATE INDEX IF NOT EXISTS idx_transcript_timestamp ON transcript_segments(timestamp);
+
+-- ─────────────────────────────────────────────────────────────────────
 -- SIGNAL MESSAGES TABLE
 -- ─────────────────────────────────────────────────────────────────────
 -- Used for WebRTC signaling (ephemeral messages, auto-cleanup)
@@ -107,6 +122,7 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metric_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nudge_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE signal_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transcript_segments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -127,6 +143,9 @@ CREATE POLICY "Service role full access on nudge_history" ON nudge_history
   FOR ALL USING (true);
 
 CREATE POLICY "Service role full access on signal_messages" ON signal_messages
+  FOR ALL USING (true);
+
+CREATE POLICY "Service role full access on transcript_segments" ON transcript_segments
   FOR ALL USING (true);
 
 CREATE POLICY "Service role full access on rooms" ON rooms

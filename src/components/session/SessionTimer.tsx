@@ -27,9 +27,9 @@ export function SessionTimer() {
     : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   return (
-    <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-full border border-white/[0.08] shadow-lg">
-      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-      <span className="text-white/90 font-mono text-sm tracking-wider font-medium">{formatted}</span>
+    <div className="flex items-center gap-1.5">
+      <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+      <span className="text-white/70 font-mono text-xs tracking-wider font-medium">{formatted}</span>
     </div>
   );
 }

@@ -44,6 +44,7 @@ import { useChatChannel } from '@/hooks/useChatChannel';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAdaptiveQuality } from '@/hooks/useAdaptiveQuality';
+import { useSessionTranscript } from '@/hooks/useSessionTranscript';
 // State & Services
 import { useSessionStore } from '@/stores/sessionStore';
 import { saveSession, StoredSession } from '@/lib/persistence/SessionStorage';
@@ -62,6 +63,10 @@ export default function SessionPage() {
 function SessionPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Face mesh processing video refs (hidden elements, exclusively for face detection)
+  const localFaceMeshRef = useRef<HTMLVideoElement>(null);
+  const remoteFaceMeshRef = useRef<HTMLVideoElement>(null);
+  // Legacy refs kept for backward compat (VideoTile manages its own video elements now)
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const selfViewRef = useRef<HTMLVideoElement>(null);
@@ -168,9 +173,9 @@ function SessionPageInner() {
     return () => cancelAnimationFrame(raf);
   }, [streamQuality, isRoomMode]);
 
-  // Face mesh on BOTH video elements (local + remote/demo)
-  const localFaceMesh = useFaceMesh(localVideoRef, isActive && streamReady);
-  const remoteFaceMesh = useFaceMesh(remoteVideoRef, isActive);
+  // Face mesh on DEDICATED hidden video elements (separate from UI VideoTiles)
+  const localFaceMesh = useFaceMesh(localFaceMeshRef, isActive && streamReady);
+  const remoteFaceMesh = useFaceMesh(remoteFaceMeshRef, isActive);
 
   // Audio analysis on local mic
   const localAudio = useAudioAnalysis(localStream, isActive && streamReady);
@@ -207,7 +212,7 @@ function SessionPageInner() {
   }, [isRoomMode, role, localAudio, remoteAudio, remoteVideoAudio, remoteStream]);
 
   // Metrics engine — real analysis on all inputs
-  useMetricsEngine({
+  const { processTranscript } = useMetricsEngine({
     getTutorFace,
     getStudentFace,
     getTutorAudio,
@@ -221,8 +226,12 @@ function SessionPageInner() {
       return localFaceMesh.getProcessingLatency();
     },
     sessionType: sessionConfig.sessionType,
+    subject: sessionConfig.subject,
     enabled: isActive,
   });
+
+  // Live session transcription (Web Speech API) — feeds transcript to topic relevance tracker
+  useSessionTranscript(isActive && isTutor, processTranscript);
 
   // Keyboard shortcuts
   const shortcutMap = useMemo(() => ({
@@ -258,21 +267,22 @@ function SessionPageInner() {
     }
   }, [localStream]);
 
-  // Keep face mesh video elements attached to streams (separate from UI elements)
+  // Keep FACE MESH video elements attached to streams (separate from UI VideoTiles)
   // These hidden video elements are exclusively for face detection processing
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      if (localVideoRef.current.srcObject !== localStream) {
-        localVideoRef.current.srcObject = localStream;
+    const el = localFaceMeshRef.current;
+    if (el && localStream) {
+      if (el.srcObject !== localStream) {
+        el.srcObject = localStream;
       }
-      if (localVideoRef.current.paused) {
-        localVideoRef.current.play().catch(() => {});
+      if (el.paused) {
+        el.play().catch(() => {});
       }
     }
   }, [localStream]);
 
   useEffect(() => {
-    const el = remoteVideoRef.current;
+    const el = remoteFaceMeshRef.current;
     if (!el) return;
 
     // In room mode with remote stream: attach the stream
@@ -287,7 +297,7 @@ function SessionPageInner() {
     // In solo mode: attach the demo video
     else if (!isRoomMode) {
       const demoSrc = '/demo/student-sample.mp4';
-      if (el.src !== demoSrc) {
+      if (!el.src.endsWith('student-sample.mp4')) {
         el.srcObject = null;
         el.src = demoSrc;
         el.loop = true;
@@ -492,6 +502,7 @@ function SessionPageInner() {
         status: 'active',
         metricsHistory: [...s.metricsArchive, ...s.metricsHistory],
         nudgeHistory: s.nudgeHistory,
+        transcriptSegments: s.transcriptSegments,
       };
       saveSession(stored).catch(() => {});
 
@@ -611,12 +622,17 @@ function SessionPageInner() {
         status: 'completed',
         metricsHistory: allMetrics,
         nudgeHistory: state.nudgeHistory,
+        transcriptSegments: state.transcriptSegments,
       }).catch(() => {});
       const unsyncedSnapshots = allMetrics.slice(lastSyncedIndexRef.current);
       fetch(`/api/sessions/${sid}/metrics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snapshots: unsyncedSnapshots, nudges: state.nudgeHistory }),
+        body: JSON.stringify({
+          snapshots: unsyncedSnapshots,
+          nudges: state.nudgeHistory,
+          transcript: state.transcriptSegments,
+        }),
       }).catch(() => {});
       fetch(`/api/sessions/${sid}`, { method: 'PATCH' }).catch(() => {});
     }
@@ -916,23 +932,22 @@ function SessionPageInner() {
       {/* Hidden audio element — plays remote participant audio (video elements are muted for autoplay) */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
 
-      {/* Hidden video elements for face mesh processing — always attached to streams, decoupled from UI layout */}
+      {/* Hidden video elements for face mesh processing — always rendered, dedicated refs, decoupled from UI */}
+      {/* Must have real dimensions (not 1px) for MediaPipe to detect faces, positioned off-screen */}
       <video
-        ref={localVideoRef}
+        ref={localFaceMeshRef}
         autoPlay
         playsInline
         muted
-        style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
+        style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '320px', height: '240px', opacity: 0, pointerEvents: 'none' }}
       />
-      {remoteStream && (
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
-        />
-      )}
+      <video
+        ref={remoteFaceMeshRef}
+        autoPlay
+        playsInline
+        muted
+        style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '320px', height: '240px', opacity: 0, pointerEvents: 'none' }}
+      />
     </div>
   );
 }

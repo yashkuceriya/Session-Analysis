@@ -47,7 +47,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'tutor-dominating',
-      trigger: (m) => m.tutor.talkTimePercent > talkThreshold && m.session.elapsedMs > 300000,
+      trigger: (m) => m.tutor.talkTimePercent > talkThreshold && m.session.elapsedMs > 120000,
       message: sessionType === 'lecture'
         ? "Consider pausing for a comprehension check"
         : "You've been talking a lot — try asking a question",
@@ -58,7 +58,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'energy-drop',
-      trigger: (m) => m.student.energyScore < 0.25 && m.session.elapsedMs > 300000,
+      trigger: (m) => m.student.energyScore < 0.25 && m.session.elapsedMs > 120000,
       message: "Energy seems low — consider a short break or change of pace",
       icon: '⚡',
       priority: 'low',
@@ -128,7 +128,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'engagement-plummeting',
-      trigger: (m) => m.engagementScore < 25 && m.session.elapsedMs > 180000 && m.session.engagementTrend === 'declining',
+      trigger: (m) => m.engagementScore < 35 && m.session.elapsedMs > 90000 && m.session.engagementTrend === 'declining',
       message: "Engagement is critically low — consider taking a break or switching approaches",
       icon: '📉',
       priority: 'high',
@@ -141,7 +141,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
         m.tutor.speechRate > 0.7 &&
         m.session.engagementTrend === 'declining' &&
         m.student.talkTimePercent < 0.15 &&
-        m.session.elapsedMs > 180000,
+        m.session.elapsedMs > 90000,
       message: "You may be going too fast — pause and check if the student is following",
       icon: '🐢',
       priority: 'medium',
@@ -151,11 +151,11 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     {
       id: 'great-turn-taking',
       trigger: (m) =>
-        m.session.turnCount > 6 &&
+        m.session.turnCount > 4 &&
         m.session.turnTakingGapMs > 0 &&
         m.session.turnTakingGapMs < 3000 &&
-        m.engagementScore > 70 &&
-        m.session.elapsedMs > 300000,
+        m.engagementScore > 65 &&
+        m.session.elapsedMs > 120000,
       message: "Great dialogue! The back-and-forth conversation is working well",
       icon: '🗣️',
       priority: 'low',
@@ -164,7 +164,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'great-engagement',
-      trigger: (m) => m.engagementScore > 85 && m.session.elapsedMs > 300000,
+      trigger: (m) => m.engagementScore > 80 && m.session.elapsedMs > 120000,
       message: "Great engagement! Keep up this pace",
       icon: '🌟',
       priority: 'low',
@@ -175,8 +175,8 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
       id: 'session-recovery',
       trigger: (m) =>
         m.session.engagementTrend === 'rising' &&
-        m.engagementScore > 65 &&
-        m.session.elapsedMs > 300000,
+        m.engagementScore > 60 &&
+        m.session.elapsedMs > 120000,
       message: "Engagement is recovering nicely — whatever you changed is working!",
       icon: '📈',
       priority: 'low',
@@ -186,7 +186,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     // NEW: Enhanced distraction and expression-based nudges
     {
       id: 'high-blink-rate',
-      trigger: (m) => (m.student.blinkRate ?? 0) > 25 && m.session.elapsedMs > 300000,
+      trigger: (m) => (m.student.blinkRate ?? 0) > 25 && m.session.elapsedMs > 120000,
       message: "Student's blink rate is elevated — this may indicate fatigue or stress. Consider a short break.",
       icon: '😫',
       priority: 'low',
@@ -227,7 +227,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
       id: 'student-high-interest',
       trigger: (m) => {
         const expr = m.studentExpression;
-        return expr !== null && (expr.interest ?? 0) > 0.7 && m.engagementScore > 80 && m.session.elapsedMs > 300000;
+        return expr !== null && (expr.interest ?? 0) > 0.6 && m.engagementScore > 70 && m.session.elapsedMs > 120000;
       },
       message: "Student is showing high interest — great time to introduce a new challenging concept!",
       icon: '🔥',
@@ -237,7 +237,7 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'focus-streak-celebration',
-      trigger: (m) => (m.session.focusStreakMs ?? 0) > 600000 && m.engagementScore > 70,
+      trigger: (m) => (m.session.focusStreakMs ?? 0) > 300000 && m.engagementScore > 65,
       message: "10+ minute focus streak! The student is deeply engaged — keep this flow going",
       icon: '🏆',
       priority: 'low',
@@ -246,12 +246,26 @@ export function createNudgeRules(sessionType: 'lecture' | 'discussion' | 'practi
     },
     {
       id: 'slouching-detected',
-      trigger: (m) => m.student.posture === 'slouching' && m.session.elapsedMs > 300000,
+      trigger: (m) => m.student.posture === 'slouching' && m.session.elapsedMs > 120000,
       message: "Student's posture suggests low energy — a quick stretch or change of activity might help",
       icon: '🧘',
       priority: 'low',
       cooldownMs: 600000,
       sensitivity: 'high',
+    },
+    // Topic relevance: tutor speaking a lot but off-topic
+    {
+      id: 'off-topic-warning',
+      trigger: (m) =>
+        m.tutor.talkTimePercent > 0.5 &&
+        m.session.elapsedMs > 120000 &&
+        (m.session as any).topicRelevanceScore !== undefined &&
+        (m.session as any).topicRelevanceScore < 0.15,
+      message: "You may be drifting off-topic — consider steering back to the session subject",
+      icon: '🎯',
+      priority: 'medium',
+      cooldownMs: 300000,
+      sensitivity: 'medium',
     },
   ];
 }

@@ -56,6 +56,7 @@ export interface SessionMetrics {
   avgDistraction?: number;   // 0-1, session average distraction
   focusStreakMs?: number;    // longest continuous focus streak in ms
   distractionEvents?: number; // count of distraction episodes
+  topicRelevanceScore?: number; // 0-1, how on-topic the tutor's speech has been
 }
 
 export type SessionType = 'lecture' | 'practice' | 'discussion';

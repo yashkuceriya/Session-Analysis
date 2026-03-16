@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, getSessionMetrics, getSessionNudges, endSession } from '@/lib/supabase/sessions';
+import { getSession, getSessionMetrics, getSessionNudges, getSessionTranscript, endSession } from '@/lib/supabase/sessions';
 
 export async function GET(
   _request: NextRequest,
@@ -7,12 +7,13 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const [session, metrics, nudges] = await Promise.all([
+    const [session, metrics, nudges, transcript] = await Promise.all([
       getSession(sessionId),
       getSessionMetrics(sessionId),
       getSessionNudges(sessionId),
+      getSessionTranscript(sessionId),
     ]);
-    return NextResponse.json({ session, metrics, nudges });
+    return NextResponse.json({ session, metrics, nudges, transcript });
   } catch {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
   }

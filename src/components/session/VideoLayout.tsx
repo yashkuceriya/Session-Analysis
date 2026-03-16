@@ -65,7 +65,7 @@ export function VideoLayout({
     const remoteMetrics = isLocalTutor ? studentMetrics : tutorMetrics;
 
     return (
-      <div className="w-full h-full p-3 bg-[#0a0a12]">
+      <div className="w-full h-full p-3 bg-[#0d0d1a]">
         <VideoTile
           name={remoteLabel}
           stream={remoteStream}
@@ -85,7 +85,7 @@ export function VideoLayout({
 
   if (viewMode === 'gallery') {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 w-full h-full bg-[#0a0a12]" style={{ minHeight: 0 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 w-full h-full bg-[#0d0d1a]" style={{ minHeight: 0 }}>
         {/* Tutor tile */}
         <VideoTile
           name={tutorLabel}
@@ -130,7 +130,7 @@ export function VideoLayout({
   const mainVideoSrc = !mainStream && !isActiveSpeakerTutor ? demoVideoSrc : undefined;
 
   return (
-    <div className="w-full h-full p-3 bg-[#0a0a12]">
+    <div className="w-full h-full p-3 bg-[#0d0d1a]">
       <VideoTile
         name={mainLabel}
         stream={mainStream}

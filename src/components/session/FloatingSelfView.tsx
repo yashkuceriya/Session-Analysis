@@ -14,9 +14,9 @@ type SizePreset = 'small' | 'medium' | 'large';
 type CornerPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 
 const SIZE_PRESETS = {
-  small: { width: 160, height: 120 },
-  medium: { width: 240, height: 180 },
-  large: { width: 320, height: 240 },
+  small: { width: 180, height: 135 },
+  medium: { width: 260, height: 195 },
+  large: { width: 340, height: 255 },
 };
 
 export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps>(
@@ -40,8 +40,8 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
     }, []);
 
     const getCornerCoordinates = useCallback((corner: CornerPosition): { x: number; y: number } => {
-      const margin = 16;
-      const bottomOffset = 80; // 80px for controls bar
+      const margin = 20;
+      const bottomOffset = 100;
       const w = currentSize.width;
       const h = currentSize.height;
 
@@ -51,9 +51,9 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
         case 'bottom-left':
           return { x: margin, y: window.innerHeight - h - margin - bottomOffset };
         case 'top-right':
-          return { x: window.innerWidth - w - margin, y: margin };
+          return { x: window.innerWidth - w - margin, y: margin + 60 };
         case 'top-left':
-          return { x: margin, y: margin };
+          return { x: margin, y: margin + 60 };
       }
     }, [currentSize]);
 
@@ -94,29 +94,26 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
     const handleMouseUp = useCallback(() => {
       if (!isDragging) return;
       setIsDragging(false);
-
-      // Snap to nearest corner
       const newCorner = getCornerPosition(position.x, position.y);
       const cornerCoords = getCornerCoordinates(newCorner);
       setCorner(newCorner);
 
-      // Smooth animation to corner
       const startPos = { ...position };
       const startTime = Date.now();
-      const duration = 300;
+      const duration = 350;
 
       const animate = () => {
         const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+        const t = Math.min(elapsed / duration, 1);
+        // Ease-out cubic
+        const ease = 1 - Math.pow(1 - t, 3);
 
         setPosition({
-          x: startPos.x + (cornerCoords.x - startPos.x) * progress,
-          y: startPos.y + (cornerCoords.y - startPos.y) * progress,
+          x: startPos.x + (cornerCoords.x - startPos.x) * ease,
+          y: startPos.y + (cornerCoords.y - startPos.y) * ease,
         });
 
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
+        if (t < 1) requestAnimationFrame(animate);
       };
 
       animate();
@@ -126,15 +123,12 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
       handleMouseUp();
     }, [handleMouseUp]);
 
-    // Attach global mouse and touch move/up listeners for dragging
     useEffect(() => {
       if (!isDragging) return;
-
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('touchmove', handleTouchMove);
       window.addEventListener('touchend', handleTouchEnd);
-
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
@@ -149,84 +143,116 @@ export const FloatingSelfView = forwardRef<HTMLDivElement, FloatingSelfViewProps
     };
 
     const getAttentionDot = () => {
-      if (eyeContactScore === undefined) return 'bg-gray-500';
-      if (eyeContactScore > 0.6) return 'bg-green-500';
-      if (eyeContactScore > 0.3) return 'bg-yellow-500';
-      return 'bg-red-500';
+      if (eyeContactScore === undefined) return 'bg-gray-400';
+      if (eyeContactScore > 0.6) return 'bg-emerald-400';
+      if (eyeContactScore > 0.3) return 'bg-amber-400';
+      return 'bg-red-400';
     };
 
-    // Initialize position to bottom-right on mount
+    const getGlowColor = () => {
+      if (eyeContactScore === undefined) return 'rgba(156, 163, 175, 0.08)';
+      if (eyeContactScore > 0.6) return 'rgba(52, 211, 153, 0.12)';
+      if (eyeContactScore > 0.3) return 'rgba(251, 191, 36, 0.10)';
+      return 'rgba(248, 113, 113, 0.10)';
+    };
+
     useEffect(() => {
       const update = () => {
         const coords = getCornerCoordinates('bottom-right');
         setPosition(coords);
       };
-      // Use requestAnimationFrame to avoid synchronous setState in effect
       const raf = requestAnimationFrame(update);
       return () => cancelAnimationFrame(raf);
     }, [getCornerCoordinates]);
 
-    // Attach stream directly for reliable playback
     useEffect(() => {
       const el = videoRef.current;
       if (!el || !stream) return;
-      if (el.srcObject !== stream) {
-        el.srcObject = stream;
-      }
-      if (el.paused) {
-        el.play().catch(() => {});
-      }
+      if (el.srcObject !== stream) el.srcObject = stream;
+      if (el.paused) el.play().catch(() => {});
     }, [stream, videoRef]);
 
     return (
       <div
         ref={containerRef}
-        className={`fixed z-30 rounded-[20px] overflow-hidden bg-gray-900 ring-1 ring-white/15 transition-all duration-200 ${
-          isDragging ? 'cursor-grabbing scale-[1.02]' : 'cursor-grab hover:ring-white/25'
+        className={`fixed z-30 overflow-hidden transition-all ${
+          isDragging ? 'cursor-grabbing scale-[1.03]' : 'cursor-grab hover:scale-[1.02]'
         }`}
         style={{
           width: `${currentSize.width}px`,
           height: `${currentSize.height}px`,
           left: `${position.x}px`,
           top: `${position.y}px`,
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          // Premium shadow: deep shadow + subtle colored glow based on attention
+          boxShadow: `
+            0 25px 60px -10px rgba(0, 0, 0, 0.6),
+            0 10px 30px -5px rgba(0, 0, 0, 0.4),
+            0 0 0 1px rgba(255, 255, 255, 0.12),
+            0 0 40px ${getGlowColor()}
+          `,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease',
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onDoubleClick={handleDoubleClick}
       >
+        {/* Video */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
           className="w-full h-full object-cover"
+          style={{ borderRadius: '24px' }}
         />
 
-        {/* Name badge with enhanced styling */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1">
-          <div className="bg-gradient-to-r from-black/80 to-black/60 backdrop-blur-lg px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 border border-white/15 shadow-lg">
-            <span className="text-white font-semibold">{name}</span>
-            {isMuted && (
-              <svg className="w-3 h-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+        {/* Subtle inner border glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          borderRadius: '24px',
+          boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.15), inset 0 0 40px rgba(0, 0, 0, 0.2)',
+        }} />
+
+        {/* Bottom gradient for name readability */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none" style={{
+          borderRadius: '0 0 24px 24px',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)',
+        }} />
+
+        {/* Name badge — bottom-left, minimal */}
+        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 z-10">
+          <span className="text-white text-xs font-semibold drop-shadow-lg">{name}</span>
+          {isMuted && (
+            <div className="w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
               </svg>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Attention indicator with enhanced styling */}
-        <div className="absolute top-3 right-3">
-          <div className={`w-3.5 h-3.5 rounded-full ${getAttentionDot()} shadow-xl shadow-green-500/50 transition-colors duration-500 ring-2 ring-white/30`} />
+        {/* Attention indicator — top-right, subtle glow dot */}
+        <div className="absolute top-3 right-3 z-10">
+          <div className={`w-3 h-3 rounded-full ${getAttentionDot()} transition-colors duration-700`}
+            style={{
+              boxShadow: eyeContactScore !== undefined && eyeContactScore > 0.6
+                ? '0 0 8px rgba(52, 211, 153, 0.6)'
+                : eyeContactScore !== undefined && eyeContactScore > 0.3
+                  ? '0 0 8px rgba(251, 191, 36, 0.5)'
+                  : 'none',
+            }}
+          />
         </div>
 
-        {/* Drag hint with smooth animation */}
+        {/* Drag hint */}
         {!isDragging && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-gradient-to-br from-black/50 via-black/40 to-black/50 backdrop-blur">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-[2px]"
+            style={{ borderRadius: '24px' }}
+          >
             <div className="text-center">
-              <span className="text-white text-xs font-semibold block">Drag to move</span>
-              <span className="text-white/70 text-[10px] block mt-1">Double-click to resize</span>
+              <span className="text-white/90 text-xs font-medium block">Drag to move</span>
+              <span className="text-white/60 text-[10px] block mt-0.5">Double-click to resize</span>
             </div>
           </div>
         )}

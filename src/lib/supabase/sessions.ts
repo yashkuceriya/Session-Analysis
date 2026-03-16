@@ -177,6 +177,60 @@ export async function saveNudges(sessionId: string, nudges: Nudge[]) {
   }
 }
 
+export async function saveTranscript(
+  sessionId: string,
+  segments: Array<{ speaker: 'tutor' | 'student'; text: string; timestamp: number }>
+) {
+  if (segments.length === 0) return;
+
+  if (hasSupabase) {
+    // Delete existing transcript for this session, then insert fresh
+    await getDb().from('transcript_segments').delete().eq('session_id', sessionId);
+    const rows = segments.map((s) => ({
+      session_id: sessionId,
+      speaker: s.speaker,
+      text: s.text,
+      timestamp: new Date(s.timestamp).toISOString(),
+    }));
+    // Insert in batches of 500 to avoid payload limits
+    for (let i = 0; i < rows.length; i += 500) {
+      const batch = rows.slice(i, i + 500);
+      const { error } = await getDb().from('transcript_segments').insert(batch);
+      if (error) throw error;
+    }
+    return;
+  }
+
+  // File fallback — store alongside session
+  const session = readSessionFile(sessionId);
+  if (session) {
+    (session as StoredSessionFile & { transcript?: typeof segments }).transcript = segments;
+    writeSessionFile(session);
+  }
+}
+
+export async function getSessionTranscript(
+  sessionId: string
+): Promise<Array<{ speaker: 'tutor' | 'student'; text: string; timestamp: number }>> {
+  if (hasSupabase) {
+    const { data, error } = await getDb()
+      .from('transcript_segments')
+      .select('speaker, text, timestamp')
+      .eq('session_id', sessionId)
+      .order('timestamp', { ascending: true });
+    if (error) throw error;
+    return (data || []).map((r: { speaker: string; text: string; timestamp: string }) => ({
+      speaker: r.speaker as 'tutor' | 'student',
+      text: r.text,
+      timestamp: new Date(r.timestamp).getTime(),
+    }));
+  }
+
+  // File fallback
+  const session = readSessionFile(sessionId);
+  return (session as StoredSessionFile & { transcript?: Array<{ speaker: 'tutor' | 'student'; text: string; timestamp: number }> })?.transcript || [];
+}
+
 export async function getSession(id: string) {
   if (hasSupabase) {
     const { data, error } = await getDb()

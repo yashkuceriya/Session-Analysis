@@ -4,6 +4,7 @@ import { SpeakingTimeTracker } from '../audio-processor/SpeakingTimeTracker';
 import { InterruptionDetector } from '../audio-processor/InterruptionDetector';
 import { ProsodyAnalyzer } from '../audio-processor/ProsodyAnalyzer';
 import { TurnTakingTracker } from '../audio-processor/TurnTakingTracker';
+import { TopicRelevanceTracker } from '../audio-processor/TopicRelevanceTracker';
 import { FaceFrame } from '../video-processor/types';
 import {
   MetricSnapshot,
@@ -30,6 +31,7 @@ export class MetricsEngine {
   private tutorProsody = new ProsodyAnalyzer();
   private studentProsody = new ProsodyAnalyzer();
   private turnTakingTracker = new TurnTakingTracker();
+  private topicRelevanceTracker = new TopicRelevanceTracker();
 
   private tutorEyeContactWindow = new RollingWindow<boolean>(120); // 60s at 2Hz
   private studentEyeContactWindow = new RollingWindow<boolean>(120);
@@ -65,6 +67,20 @@ export class MetricsEngine {
     this.config = { ...typeWeights, ...config };
     this.sessionStartTime = Date.now();
     this.focusStreakStart = Date.now();
+  }
+
+  /**
+   * Set the session topic for relevance tracking
+   */
+  setTopic(subject: string) {
+    this.topicRelevanceTracker.setTopic(subject);
+  }
+
+  /**
+   * Process a transcript segment for topic relevance tracking
+   */
+  processTranscript(text: string) {
+    this.topicRelevanceTracker.processTranscript(text);
   }
 
   private computeHeadMovement(
@@ -310,6 +326,7 @@ export class MetricsEngine {
       avgDistraction,
       focusStreakMs: this.longestFocusStreak,
       distractionEvents: this.distractionEventCount,
+      topicRelevanceScore: this.topicRelevanceTracker.getRelevanceScore(),
     };
 
     // Helper to convert ExpressionResult to ExpressionSnapshot
@@ -403,28 +420,38 @@ export class MetricsEngine {
     const c = this.config;
     const ideal = IDEAL_TALK_RATIOS[c.sessionType];
 
-    // Eye contact: average of both participants
-    const eyeContactScore = (tutor.eyeContactScore + student.eyeContactScore) / 2;
+    // Detect whether face data is available (eye contact > 0 or explicitly tracked)
+    const hasTutorFace = this.tutorEyeContactWindow.length > 5;
+    const hasStudentFace = this.studentEyeContactWindow.length > 5;
+    const hasFaceData = hasTutorFace || hasStudentFace;
+
+    // Eye contact: average of both participants (default to 0.5 if no face data)
+    const tutorEye = hasTutorFace ? tutor.eyeContactScore : 0.5;
+    const studentEye = hasStudentFace ? student.eyeContactScore : 0.5;
+    const eyeContactScore = (tutorEye + studentEye) / 2;
 
     // Speaking time: how close to ideal ratio
     const talkDeviation = Math.abs(tutor.talkTimePercent - ideal.tutor);
     const talkScore = 1 - Math.min(1, talkDeviation * 2);
 
     // Energy: weighted toward student (their engagement matters more)
-    const energyScore = tutor.energyScore * 0.35 + student.energyScore * 0.65;
+    // Default to moderate energy when face data unavailable
+    const tutorEnergy = hasTutorFace ? tutor.energyScore : Math.max(tutor.energyScore, 0.4);
+    const studentEnergy = hasStudentFace ? student.energyScore : Math.max(student.energyScore, 0.4);
+    const energyScore = tutorEnergy * 0.35 + studentEnergy * 0.65;
 
-    // Interruptions: fewer is better
+    // Interruptions: fewer is better (scaled to reasonable range)
     const interruptionCount = this.interruptionDetector.getCount();
-    const interruptionScore = Math.max(0, 1 - interruptionCount / 10);
+    const interruptionScore = Math.max(0, 1 - interruptionCount / 20);
 
     // Attention: multi-factor
-    const attentionBase =
+    const attentionBase = !hasFaceData ? 0.6 : // Neutral when no face data
       student.eyeContactTrend === 'declining' ? 0.3 :
       student.eyeContactTrend === 'rising' ? 0.9 : 0.7;
 
     // Bonus for good turn-taking (indicates active dialogue)
-    const turnBonus = elapsedMs > 60000 && this.turnTakingTracker.getResult().turnCount > 0
-      ? Math.min(0.15, this.turnTakingTracker.getResult().turnCount / 40)
+    const turnBonus = elapsedMs > 30000 && this.turnTakingTracker.getResult().turnCount > 0
+      ? Math.min(0.15, this.turnTakingTracker.getResult().turnCount / 30)
       : 0;
 
     const attentionScore = clamp(attentionBase + turnBonus, 0, 1);
@@ -434,11 +461,27 @@ export class MetricsEngine {
       ? 0.85 + 0.15 * Math.exp(-elapsedMs / DECAY_HALF_LIFE_MS)
       : 1;
 
-    const raw = eyeContactScore * c.eyeContactWeight +
-      talkScore * c.speakingTimeWeight +
-      energyScore * c.energyWeight +
-      interruptionScore * c.interruptionWeight +
-      attentionScore * c.attentionWeight;
+    // Adjust weights when face data is unavailable — rely more on audio signals
+    let eyeWeight = c.eyeContactWeight;
+    let speakingWeight = c.speakingTimeWeight;
+    let energyWeight = c.energyWeight;
+    let interruptionWeight = c.interruptionWeight;
+    let attentionWeight = c.attentionWeight;
+
+    if (!hasFaceData) {
+      // Redistribute eye contact weight to other signals
+      const redistributed = eyeWeight * 0.5;
+      eyeWeight *= 0.5; // Still use default 0.5 eye contact
+      speakingWeight += redistributed * 0.4;
+      energyWeight += redistributed * 0.3;
+      attentionWeight += redistributed * 0.3;
+    }
+
+    const raw = eyeContactScore * eyeWeight +
+      talkScore * speakingWeight +
+      energyScore * energyWeight +
+      interruptionScore * interruptionWeight +
+      attentionScore * attentionWeight;
 
     return clamp(raw * temporalWeight, 0, 1);
   }

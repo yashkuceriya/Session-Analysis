@@ -64,7 +64,10 @@ export function useFaceMesh(videoRef: React.RefObject<HTMLVideoElement | null>, 
 
       if (video && processor && processor.isReady()) {
         const start = performance.now();
-        const result = processor.processFrame(video, start);
+        // IMPORTANT: Use Date.now() for the frame timestamp so it matches
+        // the Date.now() staleness check in useMetricsEngine.
+        // performance.now() is relative to page load, Date.now() is epoch ms.
+        const result = processor.processFrame(video, Date.now());
         const duration = performance.now() - start;
 
         frameCountRef.current++;

@@ -47,6 +47,9 @@ interface SessionState {
   isRecording: boolean;
   callState: CallState;
 
+  // Transcript
+  transcriptSegments: Array<{ speaker: 'tutor' | 'student'; text: string; timestamp: number }>;
+
   // Latency
   processingLatencyMs: number;
   latencyBreakdown: LatencyBreakdown;
@@ -70,6 +73,7 @@ interface SessionState {
   setLatency: (ms: number) => void;
   setLatencyBreakdown: (breakdown: LatencyBreakdown) => void;
   setCallState: (state: CallState) => void;
+  addTranscriptSegment: (segment: { speaker: 'tutor' | 'student'; text: string; timestamp: number }) => void;
   getFullHistory: () => MetricSnapshot[];
   reset: () => void;
 }
@@ -100,6 +104,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isChatOpen: false,
   isRecording: false,
   callState: 'waiting',
+  transcriptSegments: [],
   processingLatencyMs: 0,
   latencyBreakdown: { faceMeshMs: 0, audioMs: 0, metricsMs: 0, coachingMs: 0, totalMs: 0 },
   latencyHistory: [],
@@ -116,6 +121,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       activeNudges: [],
       nudgeHistory: [],
       latencyHistory: [],
+      transcriptSegments: [],
     }),
 
   endSession: () =>
@@ -186,6 +192,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({ latencyBreakdown: breakdown }),
 
   setCallState: (state) => set({ callState: state }),
+
+  addTranscriptSegment: (segment) =>
+    set((state) => ({
+      transcriptSegments: [...state.transcriptSegments, segment],
+    })),
 
   getFullHistory: () => {
     const state = get();

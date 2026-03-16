@@ -21,7 +21,7 @@ interface UseMetricsEngineOptions {
   enabled: boolean;
 }
 
-export function useMetricsEngine(options: UseMetricsEngineOptions) {
+export function useMetricsEngine(options: UseMetricsEngineOptions & { subject?: string }) {
   const metricsEngineRef = useRef<MetricsEngine | null>(null);
   const coachingEngineRef = useRef<CoachingEngine | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -48,6 +48,9 @@ export function useMetricsEngine(options: UseMetricsEngineOptions) {
     if (!options.enabled) return;
 
     metricsEngineRef.current = new MetricsEngine({ sessionType: options.sessionType });
+    if (options.subject) {
+      metricsEngineRef.current.setTopic(options.subject);
+    }
     coachingEngineRef.current = new CoachingEngine(coachingConfig);
 
     const tick = () => {
@@ -126,4 +129,10 @@ export function useMetricsEngine(options: UseMetricsEngineOptions) {
   useEffect(() => {
     updateCoachingConfig();
   }, [updateCoachingConfig]);
+
+  const processTranscript = useCallback((text: string) => {
+    metricsEngineRef.current?.processTranscript(text);
+  }, []);
+
+  return { processTranscript };
 }

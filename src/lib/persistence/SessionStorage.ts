@@ -10,6 +10,7 @@ export interface StoredSession {
   status: 'active' | 'completed';
   metricsHistory: MetricSnapshot[];
   nudgeHistory: Nudge[];
+  transcriptSegments?: Array<{ speaker: 'tutor' | 'student'; text: string; timestamp: number }>;
 }
 
 const DB_NAME = 'nerdy-session-analysis';

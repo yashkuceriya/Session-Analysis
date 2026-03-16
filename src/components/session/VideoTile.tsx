@@ -179,11 +179,13 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
 
     return (
       <div
-        className={`relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-all duration-500 ${
-          isActiveSpeaker ? 'ring-2 ring-blue-400/60 shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'ring-1 ring-white/10'
+        className={`relative overflow-hidden bg-gradient-to-br from-[#1a1a2e] via-[#16162a] to-[#0f0f23] transition-all duration-500 ${
+          isActiveSpeaker
+            ? 'ring-[1.5px] ring-blue-400/40 shadow-[0_0_40px_rgba(59,130,246,0.08)]'
+            : 'ring-1 ring-white/[0.06]'
         } ${className}`}
         style={{
-          borderRadius: className.includes('!rounded-none') ? 0 : '20px',
+          borderRadius: className.includes('!rounded-none') ? 0 : '16px',
           minHeight: '200px',
         }}
       >
@@ -201,7 +203,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         />
 
         {/* Placeholder — z-10 (ON TOP of video), fades out when video is active */}
-        <div className={`absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 transition-opacity duration-300 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className={`absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-[#1a1a2e] via-[#16162a] to-[#0f0f23] transition-opacity duration-500 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="flex flex-col items-center gap-4">
               {/* Avatar circle with modern gradient and glow */}
               <div className={`relative w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ring-2 ring-white/10`}>
@@ -239,19 +241,24 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
           </div>
         )}
 
-        {/* Subtle vignette overlay */}
-        <div className="absolute inset-0 z-[5] pointer-events-none rounded-[20px]" style={{
-          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.3)',
+        {/* Subtle vignette + bottom gradient for name readability */}
+        <div className="absolute inset-0 z-[5] pointer-events-none" style={{
+          borderRadius: '16px',
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.15)',
+        }} />
+        <div className="absolute bottom-0 left-0 right-0 h-24 z-[5] pointer-events-none" style={{
+          borderRadius: '0 0 16px 16px',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)',
         }} />
 
         {showOverlays && (
           <>
-            {/* Floating glass name badge - bottom center */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-              <div className="flex items-center gap-2 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
-                <span className="text-white text-sm font-semibold">{name}</span>
+            {/* Name badge — bottom-left, minimal like Google Meet */}
+            <div className="absolute bottom-3 left-4 z-20">
+              <div className="flex items-center gap-2">
+                <span className="text-white text-[13px] font-medium drop-shadow-lg">{name}</span>
                 {isLocal && (
-                  <span className="text-[10px] text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full font-medium">You</span>
+                  <span className="text-[10px] text-blue-300/90 font-medium">(You)</span>
                 )}
                 {isMuted && (
                   <div className="w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center">
@@ -262,11 +269,11 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
                   </div>
                 )}
                 {isSpeaking && (
-                  <div className="flex items-center gap-0.5">
-                    {[6, 10, 8].map((h, i) => (
+                  <div className="flex items-center gap-[3px]">
+                    {[5, 9, 7].map((h, i) => (
                       <div
                         key={i}
-                        className="w-1 bg-green-400 rounded-full"
+                        className="w-[3px] bg-white/80 rounded-full"
                         style={{
                           height: `${h}px`,
                           animation: `tile-bounce 0.6s ease-in-out infinite`,
