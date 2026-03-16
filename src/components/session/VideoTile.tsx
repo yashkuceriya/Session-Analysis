@@ -96,8 +96,11 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         if (el.paused) {
           el.play().catch(() => {});
         }
-        // Check if video is rendering frames
-        if (el.videoWidth > 0 && el.videoHeight > 0 && !el.paused) {
+        // Mark active if stream is attached — don't wait for videoWidth
+        // (some browsers report 0 until the element is visible on screen)
+        if (el.srcObject && !el.paused) {
+          setVideoActive(true);
+        } else if (el.videoWidth > 0 && el.videoHeight > 0 && !el.paused) {
           setVideoActive(true);
         }
       };
@@ -107,8 +110,9 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
       let slowInterval: ReturnType<typeof setInterval> | null = null;
 
       const onPlaying = () => {
-        if (el.videoWidth > 0) {
-          setVideoActive(true);
+        // Video is playing — mark active immediately
+        setVideoActive(true);
+        {
           // Switch to slow poll once playing
           clearInterval(fastInterval);
           if (!slowInterval) {
@@ -189,20 +193,16 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
           minHeight: '200px',
         }}
       >
-        {/*
-          Video at z-0, ALWAYS full opacity.
-          Some browsers (iPad Safari) don't process frames for opacity-0 elements.
-          The placeholder sits ON TOP and fades away when video is active.
-        */}
+        {/* Video ABOVE placeholder (z-20). Always rendered, always full opacity. */}
         <video
           ref={setVideoRef}
           autoPlay
           playsInline
           muted
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          className="absolute inset-0 w-full h-full object-cover z-20"
         />
 
-        {/* Placeholder — z-10 (ON TOP of video), fades out when video is active */}
+        {/* Placeholder BEHIND video (z-10). Visible through video when no frames. */}
         <div className={`absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-[#1a1a2e] via-[#16162a] to-[#0f0f23] transition-opacity duration-500 ${videoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="flex flex-col items-center gap-4">
               {/* Avatar circle with modern gradient and glow */}
@@ -254,7 +254,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         {showOverlays && (
           <>
             {/* Name badge — bottom-left, minimal like Google Meet */}
-            <div className="absolute bottom-3 left-4 z-20">
+            <div className="absolute bottom-3 left-4 z-30">
               <div className="flex items-center gap-2">
                 <span className="text-white text-[13px] font-medium drop-shadow-lg">{name}</span>
                 {isLocal && (
