@@ -15,7 +15,8 @@ const RIGHT_EYE_TOP = 386;
 const RIGHT_EYE_BOTTOM = 374;
 
 const DEFAULT_GAZE_THRESHOLD = 0.28; // Wider threshold — works without calibration for most webcam setups
-const BLINK_ASPECT_RATIO_THRESHOLD = 0.15;
+const GLASSES_GAZE_THRESHOLD = 0.34; // Even wider for glasses wearers — lens refraction shifts iris position
+const BLINK_ASPECT_RATIO_THRESHOLD = 0.12; // Lowered from 0.15 — glasses frames can occlude eye landmarks
 const AUTO_CALIBRATION_SAMPLES = 20; // ~5 seconds at 4Hz — auto-calibrate from initial gaze center
 
 export interface GazeCalibration {
@@ -38,6 +39,7 @@ export class GazeEstimator {
   private autoCalDone = false;
   private autoCalRetries = 0;
   private readonly maxAutoCalRetries = 3;
+  private likelyGlasses = false; // Inferred from iris tracking variance during calibration
 
   estimate(landmarks: FaceLandmark[]): GazeResult | null {
     if (!landmarks || landmarks.length < 478) return null;
@@ -93,12 +95,19 @@ export class GazeEstimator {
         const ys = this.autoCalSamples.map(s => s.y);
         const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
         const meanY = ys.reduce((a, b) => a + b, 0) / ys.length;
+        // Detect glasses: high variance in iris tracking suggests lens refraction
+        const stdX = Math.sqrt(xs.reduce((sum, x) => sum + (x - meanX) ** 2, 0) / xs.length);
+        const stdY = Math.sqrt(ys.reduce((sum, y) => sum + (y - meanY) ** 2, 0) / ys.length);
+        this.likelyGlasses = (stdX > 0.06 || stdY > 0.06);
+
+        const baseThreshold = this.likelyGlasses ? GLASSES_GAZE_THRESHOLD : DEFAULT_GAZE_THRESHOLD;
+
         // Only auto-calibrate if the center is reasonably close to 0.5 (user was looking at camera)
         if (Math.abs(meanX - 0.5) < 0.25 && Math.abs(meanY - 0.5) < 0.3) {
           this.calibration = {
             centerX: meanX,
             centerY: meanY,
-            threshold: DEFAULT_GAZE_THRESHOLD,
+            threshold: baseThreshold,
           };
           this.autoCalDone = true;
         } else {
@@ -119,7 +128,7 @@ export class GazeEstimator {
     // Use calibrated center or default
     const centerX = this.calibration?.centerX ?? 0.5;
     const centerY = this.calibration?.centerY ?? 0.5;
-    const threshold = this.calibration?.threshold ?? DEFAULT_GAZE_THRESHOLD;
+    const threshold = this.calibration?.threshold ?? (this.likelyGlasses ? GLASSES_GAZE_THRESHOLD : DEFAULT_GAZE_THRESHOLD);
 
     const deviationX = Math.abs(smoothedX - centerX);
     const deviationY = Math.abs(smoothedY - centerY);
@@ -197,7 +206,9 @@ export class GazeEstimator {
     // Threshold = 2x the standard deviation of calibrated samples (covers natural variance)
     const calStdX = Math.sqrt(filtered.reduce((sum, s) => sum + (s.x - centerX) ** 2, 0) / filtered.length);
     const calStdY = Math.sqrt(filtered.reduce((sum, s) => sum + (s.y - centerY) ** 2, 0) / filtered.length);
-    const threshold = Math.max(0.08, Math.min(0.25, (calStdX + calStdY) * 2));
+    const minThreshold = this.likelyGlasses ? 0.12 : 0.08;
+    const maxThreshold = this.likelyGlasses ? 0.35 : 0.25;
+    const threshold = Math.max(minThreshold, Math.min(maxThreshold, (calStdX + calStdY) * 2));
 
     this.calibration = { centerX, centerY, threshold };
     this.calibrationSamples = [];

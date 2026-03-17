@@ -878,9 +878,9 @@ function SessionPageInner() {
           />
         )}
 
-        {/* Sidebar (when toggled — analytics panel) — only visible to tutors, defaults closed */}
+        {/* Sidebar — analytics panel, visible to tutors by default */}
         {isTutor && isSidebarOpen && (
-          <div className="flex flex-col w-72 flex-shrink-0 border-l border-white/[0.06] bg-[#0d0d1a]/95 backdrop-blur-xl overflow-y-auto">
+          <div className="flex flex-col w-72 max-w-[40vw] flex-shrink-0 border-l border-white/[0.06] bg-[#0d0d1a]/95 backdrop-blur-xl overflow-y-auto overflow-x-hidden">
             <MetricsSidebar />
             <NudgeHistory />
           </div>
@@ -897,7 +897,8 @@ function SessionPageInner() {
       </div>
 
       {/* Metrics HUD overlay */}
-      {isTutor && <MetricsHUD visible={isHudVisible && isAnalysisVisible} />}
+      {/* HUD only shows when sidebar is closed — they display the same data */}
+      {isTutor && <MetricsHUD visible={isHudVisible && isAnalysisVisible && !isSidebarOpen} />}
 
       {/* Floating controls bar — FaceTime-style pill */}
       <ControlsBar
