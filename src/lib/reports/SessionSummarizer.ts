@@ -258,11 +258,11 @@ export class SessionSummarizer {
       switch (moment.type) {
         case 'valley':
           return 0;
-        case 'nudge':
-          return 1;
-        case 'state_change':
-          return 2;
         case 'peak':
+          return 1;
+        case 'nudge':
+          return 2;
+        case 'state_change':
           return 3;
       }
     };

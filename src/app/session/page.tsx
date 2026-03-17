@@ -76,8 +76,12 @@ function SessionPageInner() {
   const roomToken = searchParams.get('token');
   const isRoomMode = !!roomId;
 
-  // Student role should NOT see analysis panels
-  const isTutor = role === 'tutor' || !isRoomMode;
+  // In solo mode (no room), always show tutor UI.
+  // In room mode, use the session store's role if it was set by the signaling/room
+  // system (e.g. via sync message), falling back to URL param as trust-on-first-use for MVP.
+  const storeRole = useSessionStore((s) => (s as any).role) as string | undefined;
+  const effectiveRole = isRoomMode ? (storeRole || role) : 'tutor';
+  const isTutor = effectiveRole === 'tutor';
 
   // Peer connection state
   const peerRef = useRef<PeerConnectionV2 | null>(null);
@@ -387,22 +391,24 @@ function SessionPageInner() {
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Verify room token if provided
+  // Verify room token if provided. If a token is present but invalid, redirect back.
+  // If no token is provided at all, allow entry for backward compat (tokenless rooms).
   useEffect(() => {
-    if (isRoomMode && roomToken) {
-      fetch('/api/rooms/verify-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: roomToken, roomId }),
-      }).then(res => {
-        if (!res.ok) {
-          console.warn('Room token verification failed — proceeding anyway for backward compatibility');
-        }
-      }).catch(() => {
-        // Token verification unavailable, proceed
-      });
-    }
-  }, [isRoomMode, roomToken, roomId]);
+    if (!isRoomMode || !roomToken) return;
+
+    fetch('/api/rooms/verify-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: roomToken, roomId }),
+    }).then(res => {
+      if (!res.ok) {
+        console.error('Room token verification failed — redirecting');
+        router.push(`/?error=invalid_token&room=${encodeURIComponent(roomId || '')}`);
+      }
+    }).catch(() => {
+      // Token verification endpoint unavailable — allow entry to avoid blocking on infra issues
+    });
+  }, [isRoomMode, roomToken, roomId, router]);
 
   // WebRTC: start peer connection when in room mode and local stream is ready
   useEffect(() => {
@@ -445,7 +451,8 @@ function SessionPageInner() {
           endSession();
           peerRef.current?.stop();
           // Students go to session-ended page, not analytics
-          router.push(`/session-ended?role=${role}`);
+          const endSid = useSessionStore.getState().sessionId;
+          router.push(`/session-ended?role=${role}${endSid ? `&sessionId=${endSid}` : ''}`);
           return; // Don't process further messages
         }
         // Timer sync: student receives tutor's startTime and sessionId
@@ -659,7 +666,7 @@ function SessionPageInner() {
     if (isTutor) {
       router.push(`/analytics/${sid}`);
     } else {
-      router.push(`/session-ended?role=${role}`);
+      router.push(`/session-ended?role=${role}${sid ? `&sessionId=${sid}` : ''}`);
     }
 
     // Fire-and-forget: save in background

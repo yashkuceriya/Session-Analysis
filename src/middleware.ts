@@ -21,6 +21,8 @@ export async function middleware(request: NextRequest) {
     '/auth/login',
     '/auth/signup',
     /^\/join\/.*/, // Allow /join/[roomId] without auth
+    /^\/highlights\/.*/, // Shareable parent-friendly session summaries
+    /^\/progress\/.*/, // Shareable student progress views
     /^\/api\/auth\/.*/, // All auth endpoints
     '/api/health',
   ];

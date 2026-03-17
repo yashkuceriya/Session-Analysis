@@ -271,23 +271,58 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-[var(--muted)]">Loading session data...</p>
+      <div className="min-h-screen bg-[var(--background)] flex flex-col">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)] bg-white/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <span className="font-bold text-lg text-[var(--foreground)]">Nerdy</span>
+          </div>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[var(--card-border)] border-t-[var(--accent)] rounded-full animate-spin" />
+          <p className="text-[var(--muted)] mt-4">Loading session analytics...</p>
+        </div>
       </div>
     );
   }
 
   if (!summary) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-[var(--muted)] mb-4">No session data available for {sessionIdParam}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
-          >
-            Start New Session
-          </button>
+      <div className="min-h-screen bg-[var(--background)] flex flex-col">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)] bg-white/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <span className="font-bold text-lg text-[var(--foreground)]">Nerdy</span>
+          </div>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          <svg className="w-16 h-16 text-[var(--muted-light)] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <h2 className="text-xl font-bold text-[var(--foreground)] mb-2">No data found for this session</h2>
+          <p className="text-[var(--muted)] text-sm text-center max-w-md mb-6">The session may not have been saved, or the data has expired.</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm font-medium transition-all"
+            >
+              Start New Session
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-4 py-2 border border-[var(--card-border)] hover:bg-[var(--card-hover)] text-[var(--foreground)] rounded-lg text-sm font-medium transition-all"
+            >
+              View Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -357,15 +392,26 @@ export default function AnalyticsPage() {
               <p className="text-[var(--muted-light)] text-xs mt-3 font-mono">{sessionIdParam}</p>
             </div>
 
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm font-medium transition-all hover:shadow-lg"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/highlights/${sessionIdParam}`}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--card-border)] hover:bg-[var(--card-hover)] text-[var(--foreground)] rounded-lg text-sm font-medium transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share with Parent
+              </Link>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm font-medium transition-all hover:shadow-lg"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
+              </button>
+            </div>
           </div>
         </div>
 

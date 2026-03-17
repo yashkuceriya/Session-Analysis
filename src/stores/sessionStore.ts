@@ -194,9 +194,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setCallState: (state) => set({ callState: state }),
 
   addTranscriptSegment: (segment) =>
-    set((state) => ({
-      transcriptSegments: [...state.transcriptSegments, segment],
-    })),
+    set((state) => {
+      const MAX_TRANSCRIPT_SEGMENTS = 600;
+      const segments = [...state.transcriptSegments, segment];
+      return {
+        transcriptSegments: segments.length > MAX_TRANSCRIPT_SEGMENTS
+          ? segments.slice(segments.length - MAX_TRANSCRIPT_SEGMENTS)
+          : segments,
+      };
+    }),
 
   getFullHistory: () => {
     const state = get();

@@ -25,6 +25,24 @@ interface TimelineDataPoint {
   neutral: number;
 }
 
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: TimelineDataPoint }> }) {
+  if (!active || !payload) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  return (
+    <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-3 text-xs shadow-xl">
+      <p className="text-[var(--foreground)] font-medium mb-1">Time: {data.time.toFixed(1)}m</p>
+      <p className="text-green-400">Smile: {data.smile}%</p>
+      <p className="text-blue-400">Focus: {data.focus}%</p>
+      <p className="text-orange-400">Confusion: {data.confusion}%</p>
+      <p className="text-yellow-400">Surprise: {data.surprise}%</p>
+      <p className="text-[var(--muted)]">Neutral: {data.neutral}%</p>
+    </div>
+  );
+}
+
 export function ExpressionTimelineChart({
   metricsHistory,
   startTime,
@@ -68,24 +86,6 @@ export function ExpressionTimelineChart({
     });
 
   if (data.length < 2) return null;
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload) return null;
-
-    const data = payload[0]?.payload;
-    if (!data) return null;
-
-    return (
-      <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-3 text-xs shadow-xl">
-        <p className="text-[var(--foreground)] font-medium mb-1">Time: {data.time.toFixed(1)}m</p>
-        <p className="text-green-400">Smile: {data.smile}%</p>
-        <p className="text-blue-400">Focus: {data.focus}%</p>
-        <p className="text-orange-400">Confusion: {data.confusion}%</p>
-        <p className="text-yellow-400">Surprise: {data.surprise}%</p>
-        <p className="text-[var(--muted)]">Neutral: {data.neutral}%</p>
-      </div>
-    );
-  };
 
   return (
     <div className="card p-5">

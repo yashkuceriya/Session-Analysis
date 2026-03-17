@@ -1,7 +1,7 @@
+import { useSessionStore } from '@/stores/sessionStore';
+
 describe('Controls-to-Media Sync', () => {
   it('should track mic state', () => {
-    // Verify the store toggle pattern
-    const { useSessionStore } = require('@/stores/sessionStore');
     const store = useSessionStore.getState();
 
     const initialMic = store.isMicEnabled;
@@ -12,7 +12,6 @@ describe('Controls-to-Media Sync', () => {
   });
 
   it('should track camera state', () => {
-    const { useSessionStore } = require('@/stores/sessionStore');
     const store = useSessionStore.getState();
 
     const initialCam = store.isCameraEnabled;
@@ -23,7 +22,6 @@ describe('Controls-to-Media Sync', () => {
   });
 
   it('should track call state transitions', () => {
-    const { useSessionStore } = require('@/stores/sessionStore');
     const store = useSessionStore.getState();
 
     // Initial state should be 'waiting'
@@ -49,7 +47,6 @@ describe('Controls-to-Media Sync', () => {
   });
 
   it('should track analysis visibility toggle', () => {
-    const { useSessionStore } = require('@/stores/sessionStore');
     const store = useSessionStore.getState();
 
     const initial = store.isAnalysisVisible;
@@ -60,7 +57,6 @@ describe('Controls-to-Media Sync', () => {
   });
 
   it('should track recording state', () => {
-    const { useSessionStore } = require('@/stores/sessionStore');
     const store = useSessionStore.getState();
 
     expect(store.isRecording).toBe(false);

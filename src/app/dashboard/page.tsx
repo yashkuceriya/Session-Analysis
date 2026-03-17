@@ -538,6 +538,65 @@ export default function DashboardPage() {
                 {trendDescription}
               </p>
             </div>
+
+            {/* Tutor Effectiveness */}
+            {(() => {
+              const engagementStdDev = sessions.length > 0
+                ? Math.round(Math.sqrt(sessions.reduce((sum, s) => sum + Math.pow(s.engagementScore - stats.avgEngagement, 2), 0) / sessions.length))
+                : 0;
+              const consistencyLabel = engagementStdDev < 10 ? 'Excellent' : engagementStdDev < 20 ? 'Good' : 'Variable';
+
+              const subjectMap = new Map<string, { total: number; count: number }>();
+              sessions.forEach(s => {
+                const entry = subjectMap.get(s.subject) || { total: 0, count: 0 };
+                entry.total += s.engagementScore;
+                entry.count += 1;
+                subjectMap.set(s.subject, entry);
+              });
+              let bestSubject = 'N/A';
+              let bestSubjectAvg = 0;
+              subjectMap.forEach((val, key) => {
+                const avg = val.total / val.count;
+                if (avg > bestSubjectAvg) {
+                  bestSubjectAvg = avg;
+                  bestSubject = key;
+                }
+              });
+
+              const highEngagementCount = sessions.filter(s => s.engagementScore >= 70).length;
+              const highEngagementPct = sessions.length > 0 ? Math.round((highEngagementCount / sessions.length) * 100) : 0;
+
+              return (
+                <div className="card p-6 mt-8 shadow-sm hover:shadow-md transition-shadow">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-1">Tutor Effectiveness</h3>
+                  <p className="text-sm text-[var(--muted-light)] mb-6">Aggregate quality metrics across all sessions</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="card p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">Avg Engagement Driven</p>
+                      <p className="text-3xl font-bold text-[var(--foreground)] mt-2">{stats.avgEngagement}%</p>
+                      <p className="text-[var(--muted-light)] text-xs mt-2">
+                        {stats.avgEngagement >= 70 ? 'Excellent' : stats.avgEngagement >= 40 ? 'Good' : 'Needs improvement'} across all sessions
+                      </p>
+                    </div>
+                    <div className="card p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">Session Consistency</p>
+                      <p className="text-3xl font-bold text-[var(--foreground)] mt-2">&plusmn;{engagementStdDev} points</p>
+                      <p className="text-[var(--muted-light)] text-xs mt-2">{consistencyLabel} consistency</p>
+                    </div>
+                    <div className="card p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">Best Subject</p>
+                      <p className="text-3xl font-bold text-[var(--foreground)] mt-2">{bestSubject}</p>
+                      <p className="text-[var(--muted-light)] text-xs mt-2">{Math.round(bestSubjectAvg)}% avg engagement</p>
+                    </div>
+                    <div className="card p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-wider">Sessions with High Engagement</p>
+                      <p className="text-3xl font-bold text-[var(--foreground)] mt-2">{highEngagementCount} of {sessions.length}</p>
+                      <p className="text-[var(--muted-light)] text-xs mt-2">{highEngagementPct}% of sessions scored 70+</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </main>
@@ -973,6 +1032,16 @@ function StudentInsightRow({
           <div className="w-20 h-6">
             <SparklineChart data={insight.sparklineData} />
           </div>
+          <Link
+            href={`/progress/${encodeURIComponent(insight.name)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-purple-500 hover:text-purple-700 transition-colors"
+            title="View student progress"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </Link>
           {isSelected && (
             <div className="text-[var(--accent)]">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

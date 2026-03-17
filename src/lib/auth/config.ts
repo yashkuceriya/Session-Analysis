@@ -3,7 +3,6 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import * as bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -71,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = user.email;
         if (email && !hasUser(email)) {
           addUser({
-            id: user.id || randomUUID(),
+            id: user.id || crypto.randomUUID(),
             email,
             name: user.name || 'User',
             password: '', // OAuth users don't have passwords

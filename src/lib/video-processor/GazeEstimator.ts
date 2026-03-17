@@ -36,6 +36,8 @@ export class GazeEstimator {
   // Auto-calibration: silently collect initial samples to find the user's natural "looking at camera" center
   private autoCalSamples: { x: number; y: number }[] = [];
   private autoCalDone = false;
+  private autoCalRetries = 0;
+  private readonly maxAutoCalRetries = 3;
 
   estimate(landmarks: FaceLandmark[]): GazeResult | null {
     if (!landmarks || landmarks.length < 478) return null;
@@ -98,8 +100,16 @@ export class GazeEstimator {
             centerY: meanY,
             threshold: DEFAULT_GAZE_THRESHOLD,
           };
+          this.autoCalDone = true;
+        } else {
+          // Calibration failed — retry with fresh samples if retries remain
+          this.autoCalRetries++;
+          if (this.autoCalRetries >= this.maxAutoCalRetries) {
+            this.autoCalDone = true; // Give up after max retries
+          } else {
+            this.autoCalSamples = []; // Reset samples for next attempt
+          }
         }
-        this.autoCalDone = true;
       }
     }
 

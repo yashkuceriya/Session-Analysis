@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { MetricSnapshot, StudentState } from '@/lib/metrics-engine/types';
 
 interface EmotionDistributionChartProps {
@@ -83,52 +83,6 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
 
   const summary = summaryParts.join(', ') + '.';
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload[0]) return null;
-
-    const data = payload[0].payload;
-    return (
-      <div className="bg-[var(--card)] border border-[var(--card-border)] rounded-lg p-2 text-xs shadow-xl">
-        <p className="text-[var(--foreground)] font-medium">{data.name}</p>
-        <p className="text-[var(--muted)]">
-          {data.value} snapshots ({data.percentage}%)
-        </p>
-      </div>
-    );
-  };
-
-  const CustomLabel = ({ cx, cy }: any) => {
-    if (!dominantState) return null;
-    return (
-      <text
-        x={cx}
-        y={cy - 8}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-[var(--foreground)] font-medium"
-        fontSize={14}
-      >
-        {dominantState.name}
-      </text>
-    );
-  };
-
-  const PercentLabel = ({ cy }: any) => {
-    if (!dominantState) return null;
-    return (
-      <text
-        x="50%"
-        y={cy + 8}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-[var(--muted)]"
-        fontSize={12}
-      >
-        {dominantState.percentage}%
-      </text>
-    );
-  };
-
   return (
     <div className="card p-5">
       <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Student State Distribution</h3>
@@ -154,28 +108,16 @@ export function EmotionDistributionChart({ metricsHistory }: EmotionDistribution
               />
             ))}
           </Pie>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={90}
-            fill="transparent"
-            paddingAngle={2}
-            dataKey="value"
-            label={<CustomLabel />}
-          />
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={90}
-            fill="transparent"
-            paddingAngle={2}
-            dataKey="value"
-            label={<PercentLabel />}
-          />
+          {dominantState && (
+            <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-[var(--foreground)] font-medium" fontSize={14}>
+              {dominantState.name}
+            </text>
+          )}
+          {dominantState && (
+            <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" className="fill-[var(--muted)]" fontSize={12}>
+              {dominantState.percentage}%
+            </text>
+          )}
         </PieChart>
       </ResponsiveContainer>
 

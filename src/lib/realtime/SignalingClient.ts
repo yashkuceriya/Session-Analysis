@@ -153,6 +153,7 @@ export class SignalingClient {
             return; // Duplicate, ignore
           }
           if (msg.id) {
+            if (this.seenMessageIds.size > 1000) this.seenMessageIds.clear();
             this.seenMessageIds.add(msg.id);
           }
           this.messageHandlers.forEach((h) => h(msg));
@@ -296,6 +297,7 @@ export class SignalingClient {
               continue; // Skip duplicates
             }
             if (msg.id) {
+              if (this.seenMessageIds.size > 1000) this.seenMessageIds.clear();
               this.seenMessageIds.add(msg.id);
             }
 

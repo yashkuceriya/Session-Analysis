@@ -419,7 +419,15 @@ export class PeerConnectionV2 {
     });
 
     this.dataChannel?.close();
-    this.pc?.close();
+    if (this.pc) {
+      this.pc.ontrack = null;
+      this.pc.onicecandidate = null;
+      this.pc.ondatachannel = null;
+      this.pc.onnegotiationneeded = null;
+      this.pc.onconnectionstatechange = null;
+      this.pc.oniceconnectionstatechange = null;
+      this.pc.close();
+    }
     this.pc = null;
 
     this.signalingClient.disconnect();

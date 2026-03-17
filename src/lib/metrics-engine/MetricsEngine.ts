@@ -404,7 +404,10 @@ export class MetricsEngine {
 
     // Confused: furrowed brows + squinting + not much talking (thinking hard)
     // Direct facial signal is the most reliable confused detector
-    if (confusion > 0.45 && student.speechRate < 0.2) {
+    if (confusion > 0.35 && student.speechRate < 0.2) {
+      return 'confused';
+    }
+    if (confusion > 0.3 && browFurrow > 0.25) {
       return 'confused';
     }
     if (eyeContactLow && !silenceLong && student.energyScore > 0.3 && student.speechRate < 0.2 && browFurrow > 0.3) {

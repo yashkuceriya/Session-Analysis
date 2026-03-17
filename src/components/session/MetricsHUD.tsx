@@ -25,7 +25,17 @@ export function MetricsHUD({ visible }: MetricsHUDProps) {
     return () => clearInterval(interval);
   }, [startTime]);
 
-  if (!currentMetrics) return null;
+  if (!currentMetrics) return (
+    <div
+      className={`fixed top-4 right-4 z-35 transition-all duration-300 ${
+        visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+      }`}
+    >
+      <div className="bg-gray-900/70 backdrop-blur-md rounded-xl p-4 shadow-lg border border-gray-700/50 w-52">
+        <p className="text-sm text-gray-400 animate-pulse">Analyzing...</p>
+      </div>
+    </div>
+  );
 
   const engagementScore = currentMetrics.engagementScore;
   const studentState = currentMetrics.studentState;

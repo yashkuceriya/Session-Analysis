@@ -37,6 +37,7 @@ export class VoiceActivityDetector {
     // Update max energy with decay
     this.maxRecentEnergy = Math.max(rms, this.maxRecentEnergy * this.energyDecay);
     this.maxRecentEnergy = Math.max(this.maxRecentEnergy, BASELINE_FLOOR);
+    this.maxRecentEnergy = Math.min(this.maxRecentEnergy, 0.5);
 
     const threshold = ENERGY_THRESHOLD_RATIO * this.maxRecentEnergy + BASELINE_FLOOR * 0.5;
     const isAboveThreshold = rms > threshold;

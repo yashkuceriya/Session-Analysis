@@ -3,7 +3,7 @@ export class NudgeCooldownManager {
   private globalLastNudge = 0;
   private globalMinInterval: number;
 
-  constructor(globalMinInterval: number = 30000) {
+  constructor(globalMinInterval: number = 5000) {
     this.globalMinInterval = globalMinInterval;
   }
 

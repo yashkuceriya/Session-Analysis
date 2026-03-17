@@ -29,7 +29,7 @@ export default function ReportPage({ params }: PageProps) {
         let metrics: MetricSnapshot[] = [];
         let nudges: any[] = [];
         let config: any = null;
-        let sessionId = params.sessionId;
+        const sessionId = params.sessionId;
 
         // 1. Try server API first (Supabase)
         try {
@@ -373,10 +373,17 @@ export default function ReportPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* Export Section */}
+        {/* Share & Export Section */}
         <section className={styles.section}>
-          <h2>Export Data</h2>
+          <h2>Share & Export</h2>
           <div className={styles.exportButtons}>
+            <Link
+              href={`/highlights/${report.metadata.sessionId}`}
+              className={styles.exportBtn}
+              style={{ background: 'var(--accent)', color: 'white', border: 'none' }}
+            >
+              Share Highlights with Parent
+            </Link>
             <button onClick={handleDownloadJSON} className={styles.exportBtn}>
               Download JSON
             </button>

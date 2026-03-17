@@ -1,8 +1,16 @@
-# Nerdy: AI-Powered Live Session Analysis
+# Nerdy Session Analysis
 
-Real-time engagement analysis and non-intrusive coaching for video tutoring sessions. Uses computer vision and audio analysis to track eye contact, speaking time balance, energy, and attention — then surfaces coaching nudges to help tutors improve session quality.
+Real-time AI-powered engagement analytics for live tutoring sessions. Tracks eye contact, facial expressions, speaking patterns, and attention — then delivers coaching nudges to tutors and shareable progress reports to parents.
 
-All processing happens in the browser. No video data leaves your machine.
+**All video/audio processing happens in the browser.** No video frames or audio samples ever leave the device. Privacy-first by design.
+
+## What It Does
+
+| For Tutors | For Parents | For Platforms |
+|---|---|---|
+| Real-time engagement score + coaching nudges during sessions | Shareable session highlights with key "Moments of Learning" | Tutor effectiveness scoring across all sessions |
+| Post-session analytics with expression timeline, talk time, eye contact | Multi-session progress tracking with engagement trends | Automated session quality signals at scale — no human QA |
+| AI-generated coaching feedback via Claude | No login required to view shared reports | Dashboard with student insights and consistency metrics |
 
 ## Quick Start
 
@@ -11,148 +19,141 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3789 in your browser. Configure a session, then click "Start." Use a webcam and microphone; for demo mode, place a video file at `public/demo/student-sample.mp4`.
+Open [http://localhost:3789](http://localhost:3789). Configure a session and click **Start Solo Session** to try it with your webcam.
 
-**Test accounts** (if using Supabase auth):
-- Email: `demo@example.com` / Password: `demo123`
-- Create your own at the signup page
-
-## Architecture Overview
-
-The system has four main components:
-
-1. **Session Runtime** — Browser-based video/audio capture, participant management, and room mode (WebRTC peer connection)
-2. **Metrics Pipeline** — Real-time face detection (MediaPipe), voice activity detection (VAD), and engagement score computation at ~2Hz
-3. **Coaching Engine** — Rule-based nudge system with configurable sensitivity and thresholds
-4. **Persistence** — Dual-layer storage: Supabase (primary) + IndexedDB (offline fallback)
-
-For full details, see **[Architecture Overview](#architecture)** below.
-
-## How to Read the Stats (for Tutors)
-
-When a session is active, the metrics sidebar shows:
-
-- **Engagement Score** (0-100) — Composite metric combining eye contact, speaking time, energy, interruptions, and attention stability. Colored ring: green (>70), yellow (50-70), red (<50).
-- **Student State** — One of: engaged, passive, confused, drifting, struggling. Shown as a badge on the student video.
-- **Speaking Time %** — Tutor vs. student. Green if balanced for session type; red if imbalanced.
-- **Eye Contact %** — Student's proportion of time looking at camera in recent window. Green if >50%, yellow 30-50%, red <30%.
-- **Energy** — Combined proxy from audio prosody + facial expression. Higher = more engaged.
-
-**Nudges** appear at the top as non-dismissible suggestions when engagement drops (e.g., "Student silent for 3 minutes"). You can configure sensitivity in session settings.
-
-For deeper understanding of what these metrics mean and their limitations, see **[METHODOLOGY.md](docs/METHODOLOGY.md)**.
-
-## How Metrics are Computed (for Reviewers)
-
-See **[docs/METHODOLOGY.md](docs/METHODOLOGY.md)** for the canonical reference. Quick summary:
-
-- **Eye Contact:** MediaPipe iris tracking; ratio of time iris is centered on camera vs. looking away (GAZE_THRESHOLD=0.18, 120-sample rolling window)
-- **Speaking Time:** Adaptive energy threshold VAD (ENERGY_THRESHOLD_RATIO=0.15, 200ms hangover) per audio stream; ratio computed over session duration
-- **Energy:** 60% audio prosody (pitch variance, loudness) + 40% facial valence (smile, frown detection)
-- **Interruptions:** Overlapping speech >500ms; assumes separate audio streams per participant
-- **Attention Stability:** Eye contact trend + silence duration; drifting detected when eye contact declines AND silence >60s
-- **Engagement Score:** Weighted combination of the above. Weights vary by session type (lecture/practice/discussion); EMA smoothed with alpha=0.15
-
-### Calibration
-
-Key tunable parameters are documented in **[docs/CALIBRATION.md](docs/CALIBRATION.md)**:
-- `GAZE_THRESHOLD` — Iris offset tolerance (default 0.18)
-- `ENERGY_THRESHOLD_RATIO` — Speech detection sensitivity (default 0.15)
-- `OVERLAP_THRESHOLD_MS` — Interruption detection (default 500ms)
-- EMA alpha — Metric smoothing (default 0.15)
-- Nudge thresholds — Silence duration, eye contact decline, etc.
-
-## Deployment
-
-### Docker
+For multi-participant mode (tutor + student on separate devices), also start the signaling server:
 
 ```bash
-docker-compose up
+cd server && npm install && npx ts-node signaling.ts
 ```
-
-Starts the Next.js app on port 3000 (or configured PORT). Requires:
-- `NEXTAUTH_URL` — Session callback URL (e.g., http://localhost:3000)
-- `NEXTAUTH_SECRET` — Random string for session encryption
-- `SUPABASE_URL` / `SUPABASE_ANON_KEY` — Optional; if not set, uses file-based backend
-
-See `.env.local` example and `docker-compose.yml` for config.
 
 ### Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXTAUTH_URL` | NextAuth session callback (required for auth) |
-| `NEXTAUTH_SECRET` | Session encryption key (required for auth) |
-| `SUPABASE_URL` | Supabase project URL (optional; uses file backend if omitted) |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key (optional) |
-| `SUPABASE_SERVICE_KEY` | Supabase service role key (for server-side operations) |
+Copy `.env.example` to `.env.local` and fill in:
 
-## Documentation
+| Variable | Required | Purpose |
+|---|---|---|
+| `AUTH_SECRET` | Yes | NextAuth session signing key (`openssl rand -base64 32`) |
+| `ANTHROPIC_API_KEY` | No | Enables AI post-session coaching analysis |
+| `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase project URL (enables cloud sync) |
+| `SUPABASE_SERVICE_ROLE_KEY` | No | Supabase admin key for server-side ops |
+| `DEV_SKIP_AUTH` | No | Set to `true` to bypass login during development |
 
-- **[docs/METHODOLOGY.md](docs/METHODOLOGY.md)** — Canonical reference for metrics, formulas, heuristics, and limitations
-- **[docs/CALIBRATION.md](docs/CALIBRATION.md)** — Tuning parameters for gaze, VAD, smoothing, and nudge thresholds
-- **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)** — Known limits and hardware dependencies
-- **[docs/PRIVACY.md](docs/PRIVACY.md)** — Data handling and privacy guarantees
+The app works fully without Supabase or Anthropic — sessions are stored in IndexedDB and AI analysis is simply disabled.
 
-## Architecture
+## Key Features
 
-### Browser-Based Processing
+### During a Session
+- **Engagement Score (0-100)** — Weighted composite of eye contact, speaking balance, energy, interruptions, and attention. Adapts weights by session type (lecture/practice/discussion).
+- **Student State Classification** — Engaged, passive, confused, drifting, or struggling — detected from facial expressions, gaze, and audio signals.
+- **AI Coaching Nudges** — Rule-based suggestions surface when engagement drops ("Student hasn't spoken in 3 min — try an open-ended question").
+- **Live Metrics HUD** — Eye contact %, talk time ratio, energy level, and engagement ring overlay.
 
-All video/audio processing runs in the browser using:
-- **MediaPipe Face Landmarker** — 478 facial landmarks including iris position (GPU-accelerated via WebGL)
-- **Web Audio API** — Real-time frequency analysis for voice activity detection
-- **getUserMedia** — Webcam and microphone capture
+### After a Session
+- **Full Analytics Page** — Engagement timeline, expression radar chart, emotion distribution, speaking time breakdown, student state timeline, key moments detection.
+- **AI Analysis** — Claude-powered coaching feedback with session grade, teaching effectiveness assessment, communication analysis, and action plans.
+- **Detailed Reports** — Downloadable JSON/CSV exports with per-second metric data.
+- **Session Highlights** (`/highlights/[id]`) — Parent-friendly shareable summary with engagement score, key moments, talk time, and recommendations. No login required.
+- **Student Progress** (`/progress/[name]`) — Multi-session engagement trends, improvement tracking, and aggregate statistics. Shareable with parents.
 
-**End-to-end latency:** ~35-85ms (varies by hardware).
+### Dashboard
+- Session history with engagement trend chart
+- Student insights with per-student sparklines and trend indicators
+- Tutor effectiveness metrics (consistency, best subject, high-engagement rate)
+- Direct links to analytics, reports, highlights, and student progress pages
 
-### Components
+## How Metrics Are Computed
 
-| Module | Purpose |
-|--------|---------|
-| `src/lib/video-processor/` | Face detection, gaze estimation, expression analysis |
-| `src/lib/audio-processor/` | Voice activity detection, speaking time tracking, interruption detection |
-| `src/lib/metrics-engine/` | Combines signals into unified engagement metrics (2Hz) |
-| `src/lib/coaching-system/` | Rule-based nudge evaluation with configurable sensitivity |
-| `src/lib/persistence/` | IndexedDB (offline cache) + Supabase API (primary storage) |
-| `src/lib/realtime/` | WebRTC peer connection and signaling (room mode) |
-| `src/hooks/` | React hooks bridging processing to UI state |
-| `src/stores/` | Zustand stores for session, metrics, coaching, accessibility state |
+| Signal | Source | Method |
+|---|---|---|
+| Eye Contact | MediaPipe Face Mesh (468 landmarks) | Iris position vs. camera center; auto-calibrating threshold |
+| Facial Expressions | MediaPipe Blendshapes (52 coefficients) | Smile, confusion (brow furrow + frown), concentration, surprise, energy |
+| Voice Activity | Web Audio API AnalyserNode | Adaptive energy threshold + spectral flatness; per-participant |
+| Speaking Balance | Custom VAD | Rolling window talk-time ratio; compared to ideal for session type |
+| Interruptions | Overlap detection | Both participants speaking simultaneously > 500ms |
+| Engagement Score | Weighted composite | Session-type-aware weights with EMA smoothing (alpha=0.15) |
 
-### Data Flow
+Engagement weights by session type:
 
-1. **Live capture:** Video frames + audio streams
-2. **Processing:** MediaPipe + VAD run in browser (~2Hz metric updates)
-3. **Storage (dual-path):**
-   - Primary: Server API → Supabase/file backend (batched every 5s)
-   - Fallback: IndexedDB (local cache, every 5s)
-4. **UI:** Zustand store → React components (real-time metrics, nudges, student state)
-5. **Analytics:** Post-session, load from server or IndexedDB and render timeline
-
-### Room Mode (Multi-Participant)
-
-When using a room URL (e.g., `/session?room=abc123`):
-- **Local stream** sent via WebRTC to peer
-- **Remote stream** received and analyzed
-- **Metrics computed separately** for tutor and student
-- **Signaling:** WebSocket-based (see `src/lib/realtime/PeerConnectionV2.ts`)
+| Weight | Lecture | Practice | Discussion |
+|---|---|---|---|
+| Eye Contact | 0.30 | 0.20 | 0.25 |
+| Speaking Time | 0.15 | 0.30 | 0.25 |
+| Energy | 0.25 | 0.15 | 0.20 |
+| Interruption (penalty) | 0.10 | 0.15 | 0.15 |
+| Attention | 0.20 | 0.20 | 0.15 |
 
 ## Tech Stack
 
-- **Next.js 16** (App Router, TypeScript)
-- **MediaPipe Face Landmarker** (GPU-accelerated face detection)
-- **Web Audio API** (real-time audio analysis)
-- **WebRTC** (peer-to-peer video/audio when in room mode)
-- **Zustand** (state management)
-- **Tailwind CSS** (styling)
-- **IndexedDB** (offline persistence)
-- **Supabase** (optional server-side storage)
-- **NextAuth.js** (authentication)
+| Layer | Technology | Why |
+|---|---|---|
+| Framework | Next.js 16, React 19, TypeScript | App Router, server components, API routes co-located |
+| State | Zustand | Vanilla API for non-React metric callbacks; selector-based re-renders |
+| Face Analysis | MediaPipe Face Mesh (@mediapipe/tasks-vision) | 468 landmarks + 52 blendshapes, runs in-browser via WASM+GPU |
+| Audio | Web Audio API (custom VAD) | Near-zero cost frequency analysis; pitch variance + energy tracking |
+| Video Calls | WebRTC (PeerConnection) | Peer-to-peer, no media server needed for 1:1 |
+| Persistence | IndexedDB (local) + Supabase (cloud) | Dual-layer: works offline, syncs when available |
+| AI Analysis | Anthropic Claude API | Post-session coaching feedback; server-side only |
+| Auth | NextAuth v5 + bcrypt | JWT sessions, credentials + OAuth (Google, GitHub) |
+| Styling | Tailwind CSS 4 | Warm light theme with CSS custom properties |
+| Charts | Recharts + custom SVG | Interactive charts on analytics; lightweight SVG on shareable pages |
 
-## Privacy
+## Project Structure
 
-- **No video upload:** All frames processed locally via WebGL
-- **Metrics only:** Only numeric metrics (eye contact %, energy score, etc.) are sent to server
-- **Audio not recorded:** Audio is analyzed in real-time via FFT; waveforms are never stored
-- **Session control:** Data persists locally in browser; clearing browser storage clears all sessions
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── api/                # REST API routes
+│   ├── analytics/[id]/     # Post-session analytics
+│   ├── dashboard/          # Tutor dashboard + effectiveness metrics
+│   ├── highlights/[id]/    # Shareable parent-friendly session summary
+│   ├── progress/[name]/    # Multi-session student progress (shareable)
+│   ├── reports/[id]/       # Detailed report with export
+│   ├── session/            # Live session page
+│   └── session-ended/      # Post-session summary with share links
+├── components/
+│   ├── session/            # 29 session UI components
+│   ├── analytics/          # Charts and visualizations
+│   └── ...                 # auth, dashboard, accessibility, ui
+├── hooks/                  # 16 custom hooks (media, face mesh, audio, etc.)
+├── lib/
+│   ├── ai/                 # Claude AI session analyzer
+│   ├── analysis/           # Bloom taxonomy, comprehension detection
+│   ├── audio-processor/    # VAD, pitch analysis, interruption detection
+│   ├── coaching-system/    # Nudge rules engine with cooldowns
+│   ├── metrics-engine/     # Core engagement computation + types
+│   ├── video-processor/    # Face mesh, gaze estimation, emotion classifier
+│   ├── realtime/           # WebRTC peer connection + signaling
+│   ├── reports/            # Report generator, summarizer, recommendations
+│   └── persistence/        # IndexedDB session storage
+├── stores/                 # Zustand stores (session, participant, accessibility)
+└── middleware.ts            # Auth middleware
 
-See **[docs/PRIVACY.md](docs/PRIVACY.md)** for details.
+server/                     # WebRTC signaling server (Node.js)
+docs/                       # Architecture documentation
+__tests__/                  # 23 test suites, 204 tests
+```
+
+## Testing
+
+```bash
+npm test              # Run all 204 tests
+npm run lint          # ESLint (0 errors)
+npm run build         # Production build
+```
+
+Tests cover: metrics engine, audio processor (VAD, speaking time, interruptions), coaching system (nudge rules, cooldowns), reports (summarizer, recommendations), auth (rate limiting, tokens), stores (state transitions), and streaming (adaptive quality).
+
+## Privacy & Security
+
+- **No video/audio upload** — All MediaPipe + Web Audio processing runs client-side
+- **Metrics only** — Only numeric engagement scores are sent to server (if Supabase configured)
+- **bcrypt password hashing** — Cost factor 10, never logged or returned
+- **Rate-limited auth** — 5 attempts per 15 minutes with lockout
+- **Room token verification** — Invalid tokens redirect with error; tokenless rooms for backward compat
+- **Role validation** — Session store role checked before URL parameter to prevent spoofing
+- **Edge-compatible auth** — No Node.js crypto imports; uses Web Crypto API
+
+## Documentation
+
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Full architecture deep-dive: design decisions, tech choices with alternatives considered, metrics engine design, data flow, performance budget, security model, and alignment with Nerdy's Live+AI platform

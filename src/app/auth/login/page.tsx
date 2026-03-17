@@ -125,9 +125,9 @@ function LoginContent() {
                 <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)]">
                   Password
                 </label>
-                <a href="#" className="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+                <span className="text-sm text-[var(--muted-light)] cursor-default" title="Coming soon">
                   Forgot?
-                </a>
+                </span>
               </div>
               <input
                 id="password"
@@ -215,10 +215,6 @@ function LoginContent() {
           </p>
         </div>
 
-        {/* Footer note */}
-        <p className="text-center text-xs text-[var(--muted-light)] mt-6">
-          Demo credentials: tutor@dev.local / Tutor123 or student@dev.local / Student123
-        </p>
       </div>
     </div>
   );
