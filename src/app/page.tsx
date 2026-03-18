@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -10,9 +10,11 @@ import { SessionHistory } from '@/components/analytics/SessionHistory';
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const startSession = useSessionStore((s) => s.startSession);
   const formRef = useRef<HTMLDivElement>(null);
+  const errorParam = searchParams.get('error');
 
   const [config, setConfig] = useState({
     subject: 'Mathematics',
@@ -71,6 +73,15 @@ export default function Home() {
           )}
         </nav>
       </header>
+
+      {/* Error banner for redirects (e.g., invalid room token) */}
+      {errorParam === 'invalid_token' && (
+        <div className="bg-red-50 border-b border-red-200 px-6 py-3 text-center">
+          <p className="text-sm text-red-700 font-medium">
+            Invalid or expired room link. Please ask for a new invite.
+          </p>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
