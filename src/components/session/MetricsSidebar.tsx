@@ -159,7 +159,7 @@ export function MetricsSidebar() {
   };
 
   return (
-    <div className="w-full bg-gray-900/90 border-l border-gray-800 flex flex-col overflow-y-auto">
+    <div className="w-full bg-gray-900 border-l border-gray-800 flex flex-col overflow-y-auto">
       {/* Header */}
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         <div className="flex items-center gap-2">

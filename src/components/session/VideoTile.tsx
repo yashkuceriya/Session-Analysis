@@ -42,6 +42,7 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
   ) {
     const internalVideoRef = useRef<HTMLVideoElement | null>(null);
     const [videoActive, setVideoActive] = useState(false);
+    const [videoError, setVideoError] = useState(false);
 
     // Merge forwarded ref with internal ref
     const setVideoRef = useCallback(
@@ -63,6 +64,8 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
       const el = internalVideoRef.current;
       if (!el) return;
 
+      setVideoError(false);
+
       if (stream) {
         // Attach MediaStream
         if (el.srcObject !== stream) {
@@ -80,10 +83,21 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         }
       }
 
+      // Handle video load errors (e.g., missing demo file)
+      const onError = () => {
+        setVideoError(true);
+        setVideoActive(false);
+      };
+      el.addEventListener('error', onError);
+
       // Always try to play — handles autoplay restrictions, re-mounts, etc.
       if ((stream || videoSrc) && el.paused) {
         el.play().catch(() => {});
       }
+
+      return () => {
+        el.removeEventListener('error', onError);
+      };
     }, [stream, videoSrc]);
 
     // Persistent play retry — some browsers (iPad Safari) need repeated play() attempts
@@ -232,11 +246,20 @@ export const VideoTile = memo(forwardRef<HTMLVideoElement, VideoTileProps>(
         </div>
 
         {/* Loading indicator when stream exists but video not yet active */}
-        {(stream || videoSrc) && !videoActive && (
+        {(stream || videoSrc) && !videoActive && !videoError && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
             <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
               <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span className="text-white/70 text-xs">Connecting video...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error indicator when video source failed to load */}
+        {videoError && !stream && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+            <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <span className="text-white/50 text-xs">No video available</span>
             </div>
           </div>
         )}

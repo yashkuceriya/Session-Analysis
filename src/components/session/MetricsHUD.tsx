@@ -31,7 +31,7 @@ export function MetricsHUD({ visible }: MetricsHUDProps) {
         visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
       }`}
     >
-      <div className="bg-gray-900/70 backdrop-blur-md rounded-xl p-4 shadow-lg border border-gray-700/50 w-52">
+      <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700/50 w-52">
         <p className="text-sm text-gray-400 animate-pulse">Analyzing...</p>
       </div>
     </div>
@@ -77,13 +77,13 @@ export function MetricsHUD({ visible }: MetricsHUDProps) {
         // Collapsed view - just engagement score
         <button
           onClick={() => setIsCollapsed(false)}
-          className={`${getEngagementColor(engagementScore)} text-2xl font-bold bg-gray-900/70 backdrop-blur-md rounded-xl p-4 hover:bg-gray-900/90 transition-all`}
+          className={`${getEngagementColor(engagementScore)} text-2xl font-bold bg-gray-900 rounded-xl p-4 hover:bg-gray-800 transition-all`}
         >
           {engagementScore}
         </button>
       ) : (
         // Expanded view
-        <div className="bg-gray-900/70 backdrop-blur-md rounded-xl p-4 shadow-lg border border-gray-700/50 space-y-3 w-52">
+        <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700/50 space-y-3 w-52">
           {/* Header with collapse button */}
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Metrics</h3>
