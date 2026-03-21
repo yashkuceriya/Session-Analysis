@@ -46,6 +46,7 @@ export class PeerConnectionV2 {
   private localStream: MediaStream | null = null;
   private makingOffer = false;
   private connectionState: ConnectionState = 'disconnected';
+  private iceRestartCount = 0;
   private lastStats: Partial<ConnectionStats> = {};
   private ignoreOffer = false;
 
@@ -166,7 +167,15 @@ export class PeerConnectionV2 {
       this.setConnectionState(newState);
 
       if (state === 'failed') {
-        this.attemptICERestart();
+        this.iceRestartCount++;
+        if (this.iceRestartCount <= 5) {
+          this.attemptICERestart();
+        } else {
+          console.warn('[PeerConnectionV2] Max ICE restarts reached, giving up');
+          this.setConnectionState('disconnected');
+        }
+      } else if (state === 'connected') {
+        this.iceRestartCount = 0;
       }
     };
 

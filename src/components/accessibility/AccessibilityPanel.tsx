@@ -55,7 +55,7 @@ export function AccessibilityPanel({
       />
 
       <div
-        className={`fixed right-0 top-0 bottom-0 w-96 bg-gray-950 border-l border-white/10 overflow-y-auto z-50 shadow-2xl transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-gray-950 border-l border-white/10 overflow-y-auto z-50 shadow-2xl transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } ${fontSizeClass}`}
         onClick={(e) => e.stopPropagation()}

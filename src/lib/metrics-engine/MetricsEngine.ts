@@ -281,7 +281,8 @@ export class MetricsEngine {
     };
 
     // Engagement score with temporal weighting
-    const engagementRaw = this.computeEngagement(tutor, student, elapsedMs);
+    let engagementRaw = this.computeEngagement(tutor, student, elapsedMs);
+    if (!Number.isFinite(engagementRaw)) engagementRaw = 0.5;
     const engagementSmoothed = this.engagementEMA.update(engagementRaw);
     this.engagementHistory.push(engagementSmoothed);
     if (this.engagementHistory.length > 600) {

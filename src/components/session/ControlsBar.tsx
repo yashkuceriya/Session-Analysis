@@ -37,6 +37,7 @@ function ControlButton({
   return (
     <button
       onClick={onClick}
+      aria-label={title}
       className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 relative group ${
         danger
           ? 'bg-red-500/90 hover:bg-red-400'
@@ -145,6 +146,7 @@ export function ControlsBar({
         <button
           onClick={handleEndClick}
           disabled={isEnding}
+          aria-label="End call"
           className={`w-14 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
             isEnding
               ? 'bg-red-700 cursor-not-allowed opacity-60'

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -9,6 +9,14 @@ import { SessionType } from '@/lib/metrics-engine/types';
 import { SessionHistory } from '@/components/analytics/SessionHistory';
 
 export default function Home() {
+  return (
+    <Suspense>
+      <HomeInner />
+    </Suspense>
+  );
+}
+
+function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();

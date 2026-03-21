@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
 import { roomManager } from '@/lib/realtime/RoomManager';
 
 /**
@@ -54,8 +55,7 @@ export async function GET(
 
 /**
  * DELETE /api/rooms/[roomId]
- * End a room (tutor only)
- * Body: { tutorId: string }
+ * End a room (tutor only — verified via auth session)
  */
 export async function DELETE(
   request: NextRequest,
@@ -63,11 +63,15 @@ export async function DELETE(
 ) {
   try {
     const { roomId } = await params;
-    const body = await request.json();
-    const { tutorId } = body;
 
     if (!roomId) {
       return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
+    }
+
+    // Verify ownership from authenticated session, not client body
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const roomInfo = roomManager.getRoomInfo(roomId);
@@ -76,9 +80,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
 
-    // Verify tutor ownership
-    if (roomInfo.tutorId !== tutorId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (roomInfo.tutorId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     roomManager.endRoom(roomId);

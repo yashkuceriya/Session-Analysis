@@ -57,7 +57,7 @@ export function ChatPanel({ isOpen, messages, onSendMessage, onClose, unreadCoun
 
       {/* Chat Panel */}
       <div
-        className={`fixed top-0 right-0 h-screen w-80 bg-gray-900 border-l border-gray-800 flex flex-col transition-transform duration-300 z-35 ${
+        className={`fixed top-0 right-0 h-screen w-full sm:w-80 bg-gray-900 border-l border-gray-800 flex flex-col transition-transform duration-300 z-35 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

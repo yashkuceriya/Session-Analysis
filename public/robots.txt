@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /session
+Disallow: /session-ended
+Disallow: /dashboard
+Disallow: /analytics/
+
+Sitemap: /sitemap.xml

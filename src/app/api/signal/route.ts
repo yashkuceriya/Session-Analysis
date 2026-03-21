@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/server';
+import { roomManager } from '@/lib/realtime/RoomManager';
 
 interface SignalMessage {
   id: string;
@@ -132,11 +133,23 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Periodic room cleanup — piggybacked on polling (runs at most once per minute)
+let lastCleanup = 0;
+function maybeCleanupRooms() {
+  const now = Date.now();
+  if (now - lastCleanup > 60_000) {
+    lastCleanup = now;
+    try { roomManager.cleanup(); } catch { /* best-effort */ }
+  }
+}
+
 // GET: Poll for messages
 export async function GET(req: NextRequest) {
+  maybeCleanupRooms();
   const room = req.nextUrl.searchParams.get('room');
   const role = req.nextUrl.searchParams.get('role');
-  const since = parseInt(req.nextUrl.searchParams.get('since') || '0', 10);
+  const sinceRaw = parseInt(req.nextUrl.searchParams.get('since') || '0', 10);
+  const since = Number.isFinite(sinceRaw) ? sinceRaw : 0;
 
   if (!room || !role) {
     return NextResponse.json(

@@ -19,6 +19,10 @@ export function useRecording() {
   }, []);
 
   const startRecording = useCallback((streams: MediaStream[]) => {
+    if (typeof MediaRecorder === 'undefined') {
+      console.warn('Recording not supported in this browser');
+      return;
+    }
     try {
       // Create audio context for mixing multiple streams
       const audioContext = new AudioContext();
