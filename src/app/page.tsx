@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -24,15 +24,27 @@ function HomeInner() {
   const formRef = useRef<HTMLDivElement>(null);
   const errorParam = searchParams.get('error');
 
+  const [roomCode, setRoomCode] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [config, setConfig] = useState({
     subject: 'Mathematics',
     sessionType: 'discussion' as SessionType,
     studentLevel: 'High School',
-    tutorName: 'Tutor',
+    tutorName: session?.user?.name || 'Tutor',
     studentName: 'Student',
   });
 
+  // Sync tutor name with auth session when it loads
+  useEffect(() => {
+    if (session?.user?.name && config.tutorName === 'Tutor') {
+      setConfig(c => ({ ...c, tutorName: session.user!.name! }));
+    }
+  }, [session?.user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const canStart = config.subject.trim() && config.tutorName.trim() && config.studentName.trim();
+
   const handleStart = () => {
+    if (!canStart) return;
     startSession(config);
     router.push('/session');
   };
@@ -57,7 +69,8 @@ function HomeInner() {
           </div>
           <span className="font-bold text-lg text-[var(--foreground)]">Nerdy</span>
         </div>
-        <nav className="flex items-center gap-6">
+        {/* Desktop nav */}
+        <nav className="hidden sm:flex items-center gap-6">
           <Link href="/dashboard" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
             Dashboard
           </Link>
@@ -80,7 +93,31 @@ function HomeInner() {
             </Link>
           )}
         </nav>
+        {/* Mobile hamburger */}
+        <button
+          className="sm:hidden p-2 -mr-2 text-[var(--muted)] hover:text-[var(--foreground)]"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {mobileMenuOpen
+              ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
+          </svg>
+        </button>
       </header>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-b border-[var(--card-border)] bg-white px-6 py-3 flex flex-col gap-3">
+          <Link href="/dashboard" className="text-sm font-medium text-[var(--muted)]" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+          {session?.user ? (
+            <button onClick={() => signOut()} className="text-sm font-medium text-red-500 text-left">Sign Out</button>
+          ) : (
+            <Link href="/auth/login" className="text-sm font-medium text-[var(--accent)]" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+          )}
+        </div>
+      )}
 
       {/* Error banner for redirects (e.g., invalid room token) */}
       {errorParam === 'invalid_token' && (
@@ -489,7 +526,8 @@ function HomeInner() {
 
             <button
               onClick={handleStart}
-              className="w-full py-3.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-[var(--accent)] to-orange-500 hover:from-[var(--accent-hover)] hover:to-orange-600 text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.01]"
+              disabled={!canStart}
+              className="w-full py-3.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-[var(--accent)] to-orange-500 hover:from-[var(--accent-hover)] hover:to-orange-600 text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Start Solo Session (Demo)
             </button>
@@ -506,28 +544,37 @@ function HomeInner() {
               <p className="text-xs text-[var(--muted)] mb-3">
                 Both tutor and student open their own tab with the same room code.
               </p>
+              <button
+                onClick={() => {
+                  if (!canStart) return;
+                  const room = Math.random().toString(36).slice(2, 8);
+                  startSession(config);
+                  router.push(`/session?room=${room}&role=tutor`);
+                }}
+                disabled={!canStart}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-semibold text-sm shadow-lg shadow-green-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              >
+                Create Room (as Tutor)
+              </button>
               <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.trim())}
+                  placeholder="Enter room code"
+                  className={`${inputClass} flex-1 font-mono uppercase`}
+                  maxLength={8}
+                />
                 <button
                   onClick={() => {
-                    const room = Math.random().toString(36).slice(2, 8);
+                    if (!roomCode || !canStart) return;
                     startSession(config);
-                    router.push(`/session?room=${room}&role=tutor`);
+                    router.push(`/session?room=${roomCode}&role=student`);
                   }}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-semibold text-sm shadow-lg shadow-green-500/20 transition-all duration-200"
+                  disabled={!roomCode || !canStart}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Start as Tutor
-                </button>
-                <button
-                  onClick={() => {
-                    const room = prompt('Enter the room code from your tutor:');
-                    if (room) {
-                      startSession(config);
-                      router.push(`/session?room=${room}&role=student`);
-                    }
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all duration-200"
-                >
-                  Join as Student
+                  Join
                 </button>
               </div>
             </div>
@@ -540,7 +587,7 @@ function HomeInner() {
 
       {/* Footer */}
       <footer className="border-t border-[var(--card-border)] py-8 px-6 mt-auto">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-[var(--accent)] rounded-md flex items-center justify-center">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -549,9 +596,11 @@ function HomeInner() {
             </div>
             <span className="text-sm font-semibold text-[var(--foreground)]">Nerdy</span>
           </div>
-          <p className="text-xs text-[var(--muted-light)]">
-            Built for better tutoring. All processing happens locally.
-          </p>
+          <div className="flex items-center gap-4 text-xs text-[var(--muted-light)]">
+            <span>All video &amp; audio stays in your browser</span>
+            <span className="hidden sm:inline">·</span>
+            <span>No data leaves your device unless you sync</span>
+          </div>
         </div>
       </footer>
     </div>

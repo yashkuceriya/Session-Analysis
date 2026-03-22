@@ -31,6 +31,10 @@ export const metadata: Metadata = {
     description:
       'Real-time engagement analytics, AI coaching nudges, and shareable progress reports that make tutoring measurable.',
   },
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
   robots: {
     index: true,
     follow: true,

@@ -125,7 +125,7 @@ function LoginContent() {
                 <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)]">
                   Password
                 </label>
-                <span className="text-sm text-[var(--muted-light)] cursor-default" title="Coming soon">
+                <span className="text-sm text-[var(--muted-light)]/50 cursor-not-allowed select-none">
                   Forgot?
                 </span>
               </div>
