@@ -3,23 +3,29 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, lazy, Suspense } from 'react';
 import { loadSession, StoredSession } from '@/lib/persistence/SessionStorage';
 import { MetricSnapshot } from '@/lib/metrics-engine/types';
 import { Nudge } from '@/lib/coaching-system/types';
 import { SessionConfig } from '@/lib/session/types';
-import { TimelineChart } from '@/components/analytics/TimelineChart';
-import { SpeakingTimeChart } from '@/components/analytics/SpeakingTimeChart';
-import { EngagementHeatmap } from '@/components/analytics/EngagementHeatmap';
-import { AIAnalysis } from '@/components/analytics/AIAnalysis';
-import { NudgeEffectivenessChart } from '@/components/analytics/NudgeEffectivenessChart';
-import { StudentStateTimeline } from '@/components/analytics/StudentStateTimeline';
-import { SessionNarrativeSummary } from '@/components/analytics/SessionNarrativeSummary';
-import { ExpressionRadarChart } from '@/components/analytics/ExpressionRadarChart';
-import { EmotionDistributionChart } from '@/components/analytics/EmotionDistributionChart';
-import { ExpressionTimelineChart } from '@/components/analytics/ExpressionTimelineChart';
-import { FacialExpressionCard } from '@/components/analytics/FacialExpressionCard';
-import { SessionTranscript } from '@/components/analytics/SessionTranscript';
+
+// Lazy load heavy chart components for faster initial page load
+const TimelineChart = lazy(() => import('@/components/analytics/TimelineChart').then(m => ({ default: m.TimelineChart })));
+const SpeakingTimeChart = lazy(() => import('@/components/analytics/SpeakingTimeChart').then(m => ({ default: m.SpeakingTimeChart })));
+const EngagementHeatmap = lazy(() => import('@/components/analytics/EngagementHeatmap').then(m => ({ default: m.EngagementHeatmap })));
+const AIAnalysis = lazy(() => import('@/components/analytics/AIAnalysis').then(m => ({ default: m.AIAnalysis })));
+const NudgeEffectivenessChart = lazy(() => import('@/components/analytics/NudgeEffectivenessChart').then(m => ({ default: m.NudgeEffectivenessChart })));
+const StudentStateTimeline = lazy(() => import('@/components/analytics/StudentStateTimeline').then(m => ({ default: m.StudentStateTimeline })));
+const SessionNarrativeSummary = lazy(() => import('@/components/analytics/SessionNarrativeSummary').then(m => ({ default: m.SessionNarrativeSummary })));
+const ExpressionRadarChart = lazy(() => import('@/components/analytics/ExpressionRadarChart').then(m => ({ default: m.ExpressionRadarChart })));
+const EmotionDistributionChart = lazy(() => import('@/components/analytics/EmotionDistributionChart').then(m => ({ default: m.EmotionDistributionChart })));
+const ExpressionTimelineChart = lazy(() => import('@/components/analytics/ExpressionTimelineChart').then(m => ({ default: m.ExpressionTimelineChart })));
+const FacialExpressionCard = lazy(() => import('@/components/analytics/FacialExpressionCard').then(m => ({ default: m.FacialExpressionCard })));
+const SessionTranscript = lazy(() => import('@/components/analytics/SessionTranscript').then(m => ({ default: m.SessionTranscript })));
+
+function ChartLoader() {
+  return <div className="h-48 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[var(--card-border)] border-t-[var(--accent)] rounded-full animate-spin" /></div>;
+}
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -416,6 +422,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* SESSION NARRATIVE SUMMARY */}
+        <Suspense fallback={<ChartLoader />}>
         {startTime && (
           <div className="mb-8">
             <SessionNarrativeSummary
@@ -942,6 +949,7 @@ export default function AnalyticsPage() {
           nudgeHistory={nudgeHistory}
           sessionConfig={sessionConfig}
         />
+        </Suspense>
       </div>
     </div>
   );

@@ -227,11 +227,12 @@ function HomeInner() {
                       {[40, 55, 60, 72, 68, 78, 85, 82, 90, 88, 92, 87].map((v, i) => (
                         <div
                           key={i}
-                          className="flex-1 rounded-sm"
+                          className="flex-1 rounded-sm animate-[hero-bar_0.8s_ease-out_forwards]"
                           style={{
                             height: `${v}%`,
                             background: v > 75 ? '#22c55e' : v > 50 ? '#eab308' : '#ef4444',
-                            opacity: 0.7 + (i / 40),
+                            opacity: 0,
+                            animationDelay: `${0.5 + i * 0.08}s`,
                           }}
                         />
                       ))}
@@ -257,7 +258,7 @@ function HomeInner() {
                       <span className="text-[10px] text-emerald-400">Student 55%</span>
                     </div>
                   </div>
-                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
+                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 animate-[hero-slide-in_0.5s_ease-out_forwards]" style={{ opacity: 0, animationDelay: '1.8s' }}>
                     <div className="flex items-start gap-2">
                       <span className="text-amber-400 text-xs mt-0.5">AI</span>
                       <span className="text-xs text-amber-200/80 leading-relaxed">

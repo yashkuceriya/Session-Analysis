@@ -86,15 +86,46 @@ export function ControlsBar({
   const [isEnding, setIsEnding] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+
   const handleEndClick = useCallback(() => {
     if (isEnding) return;
+    setShowEndConfirm(true);
+  }, [isEnding]);
+
+  const confirmEnd = useCallback(() => {
+    setShowEndConfirm(false);
     setIsEnding(true);
     onEndSession();
-  }, [isEnding, onEndSession]);
+  }, [onEndSession]);
 
   const isControlsVisible = autoHideVisible;
 
   return (
+    <>
+    {/* End session confirmation */}
+    {showEndConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
+        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-sm mx-4 shadow-2xl">
+          <h3 className="text-white text-lg font-semibold mb-2">End session?</h3>
+          <p className="text-gray-400 text-sm mb-6">This will save your session data and navigate to the report.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowEndConfirm(false)}
+              className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmEnd}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-400 transition-colors"
+            >
+              End Session
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pointer-events-none z-40">
       {/* Floating pill controls — FaceTime style */}
       <div
@@ -307,6 +338,7 @@ export function ControlsBar({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -201,6 +201,23 @@ html[data-font-size="large"] { font-size: 20px; }
   color: var(--foreground);
 }
 
+/* Hero animation */
+@keyframes hero-bar {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes hero-slide-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Print styles for reports */
+@media print {
+  header, footer, nav, .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
