@@ -2,7 +2,7 @@
 
 ## Section 1: Overview
 
-Nerdy uses real-time computer vision and audio analysis to estimate tutoring engagement during live sessions. The system runs entirely in the browser, processing video frames via MediaPipe Face Landmarker and analyzing audio using the Web Audio API.
+Session Analysis uses real-time computer vision and audio analysis to estimate tutoring engagement during live sessions. The system runs entirely in the browser, processing video frames via MediaPipe Face Landmarker and analyzing audio using the Web Audio API.
 
 **Important:** These are heuristic estimates, not validated psychometric instruments. The engagement metrics are designed to surface actionable patterns (e.g., declining eye contact, prolonged silence) to help tutors reflect on session dynamics. They should not be treated as definitive measures of learning, comprehension, or psychological state.
 

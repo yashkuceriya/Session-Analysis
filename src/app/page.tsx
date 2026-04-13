@@ -67,7 +67,7 @@ function HomeInner() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </div>
-          <span className="font-bold text-lg text-[var(--foreground)]">Nerdy</span>
+          <span className="font-bold text-lg text-[var(--foreground)]">Session Analysis</span>
         </div>
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-6">
@@ -283,7 +283,7 @@ function HomeInner() {
               Everything you need to understand your sessions
             </h2>
             <p className="text-[var(--muted)] max-w-xl mx-auto">
-              Nerdy watches what matters so you can focus on teaching. Every metric is computed
+              Session Analysis watches what matters so you can focus on teaching. Every metric is computed
               locally in your browser — nothing leaves your device.
             </p>
           </div>
@@ -414,7 +414,7 @@ function HomeInner() {
               {
                 step: '2',
                 title: 'Teach naturally',
-                desc: 'Nerdy runs silently in the background, tracking engagement, expressions, and interaction patterns.',
+                desc: 'Session Analysis runs silently in the background, tracking engagement, expressions, and interaction patterns.',
               },
               {
                 step: '3',
@@ -595,7 +595,7 @@ function HomeInner() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </div>
-            <span className="text-sm font-semibold text-[var(--foreground)]">Nerdy</span>
+            <span className="text-sm font-semibold text-[var(--foreground)]">Session Analysis</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-[var(--muted-light)]">
             <span>All video &amp; audio stays in your browser</span>

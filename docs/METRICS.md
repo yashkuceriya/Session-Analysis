@@ -1,10 +1,10 @@
-# Nerdy Metrics Reference
+# Session Analysis Metrics Reference
 
-This document provides comprehensive documentation for all metrics tracked by the Nerdy platform, how they are computed, and how they are used to assess tutoring session quality.
+This document provides comprehensive documentation for all metrics tracked by the Session Analysis platform, how they are computed, and how they are used to assess tutoring session quality.
 
 ## Overview
 
-Nerdy tracks metrics across three dimensions:
+The platform tracks metrics across three dimensions:
 
 1. **Participant Metrics** — Individual characteristics of tutor and student
 2. **Session Metrics** — Aggregate session-level statistics
@@ -830,7 +830,7 @@ See `docs/CALIBRATION.md` for detailed calibration procedures.
 
 ## Summary
 
-The Nerdy metrics system provides a comprehensive, real-time assessment of tutoring quality by tracking:
+The Session Analysis metrics system provides a comprehensive, real-time assessment of tutoring quality by tracking:
 - **Individual behaviors** through participant metrics
 - **Session dynamics** through aggregate metrics
 - **Emotional/cognitive state** through expression analysis

@@ -277,7 +277,7 @@ export default function DashboardPage() {
           <div className="flex-1">
             <div className="flex items-baseline gap-3 mb-1">
               <h1 className="text-4xl font-bold text-[var(--foreground)]">Dashboard</h1>
-              <span className="text-[var(--accent)] font-semibold text-lg">Nerdy</span>
+              <span className="text-[var(--accent)] font-semibold text-lg">Session Analysis</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 mt-2">
               <p className="text-[var(--muted-light)] text-sm">{today}</p>

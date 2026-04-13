@@ -1,10 +1,10 @@
-# Nerdy: Real-Time Tutoring Session Analysis Platform
+# Session Analysis: Real-Time Tutoring Session Analysis Platform
 
-Nerdy is an intelligent tutoring platform that uses AI-powered real-time analysis to enhance the quality of online tutoring sessions. The system automatically analyzes student engagement, emotional state, and learning signals through computer vision and audio processing, providing instant coaching feedback to tutors.
+Session Analysis is an intelligent tutoring platform that uses AI-powered real-time analysis to enhance the quality of online tutoring sessions. The system automatically analyzes student engagement, emotional state, and learning signals through computer vision and audio processing, providing instant coaching feedback to tutors.
 
 ## Overview
 
-Nerdy captures real-time metrics during video tutoring sessions and provides:
+Session Analysis captures real-time metrics during video tutoring sessions and provides:
 - **Live Engagement Analysis** — Continuous engagement scoring (0-100)
 - **Student State Detection** — Classification into engaged, passive, confused, drifting, or struggling states
 - **Facial Expression Tracking** — Smile, confusion, concentration, surprise detection
@@ -433,4 +433,4 @@ Proprietary. All rights reserved.
 
 ## Contact
 
-For questions or feedback, reach out to the Nerdy team.
+For questions or feedback, reach out to the Session Analysis team.

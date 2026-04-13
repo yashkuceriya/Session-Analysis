@@ -1,6 +1,6 @@
-# Nerdy: Production Deployment Guide
+# Session Analysis: Production Deployment Guide
 
-Complete instructions for deploying Nerdy to production with Supabase, Vercel, and optional Docker containerization.
+Complete instructions for deploying Session Analysis to production with Supabase, Vercel, and optional Docker containerization.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ Before starting, ensure you have:
 
 ## Supabase Setup
 
-Supabase provides a PostgreSQL database with built-in real-time capabilities, perfect for Nerdy's signaling and session storage needs.
+Supabase provides a PostgreSQL database with built-in real-time capabilities, perfect for the signaling and session storage needs.
 
 ### Step 1: Create a Supabase Project
 
@@ -413,7 +413,7 @@ docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/nerdy:latest
 
 ### Signaling (WebRTC Peer Connection)
 
-Nerdy uses a polling-based signaling system for maximum hosting flexibility:
+Session Analysis uses a polling-based signaling system for maximum hosting flexibility:
 
 **Development:**
 - In-memory signaling (requires single server)

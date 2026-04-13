@@ -10,24 +10,24 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Nerdy - AI-Powered Live Tutoring Analytics',
-    template: '%s | Nerdy',
+    default: 'Session Analysis - AI-Powered Live Tutoring Analytics',
+    template: '%s | Session Analysis',
   },
   description:
     'Real-time engagement analytics, AI coaching nudges, and shareable progress reports that make tutoring measurable.',
   keywords: ['tutoring', 'AI analytics', 'engagement', 'education', 'video tutoring', 'coaching'],
-  authors: [{ name: 'Nerdy' }],
+  authors: [{ name: 'Session Analysis' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    siteName: 'Nerdy',
-    title: 'Nerdy - AI-Powered Live Tutoring Analytics',
+    siteName: 'Session Analysis',
+    title: 'Session Analysis - AI-Powered Live Tutoring Analytics',
     description:
       'Real-time engagement analytics, AI coaching nudges, and shareable progress reports that make tutoring measurable.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nerdy - AI-Powered Live Tutoring Analytics',
+    title: 'Session Analysis - AI-Powered Live Tutoring Analytics',
     description:
       'Real-time engagement analytics, AI coaching nudges, and shareable progress reports that make tutoring measurable.',
   },

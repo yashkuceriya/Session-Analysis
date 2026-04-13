@@ -1,4 +1,4 @@
-# Nerdy Session Analysis
+# Session Analysis
 
 Real-time AI-powered engagement analytics for live tutoring sessions. Tracks eye contact, facial expressions, speaking patterns, and attention — then delivers coaching nudges to tutors and shareable progress reports to parents.
 
@@ -156,4 +156,4 @@ Tests cover: metrics engine, audio processor (VAD, speaking time, interruptions)
 
 ## Documentation
 
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Full architecture deep-dive: design decisions, tech choices with alternatives considered, metrics engine design, data flow, performance budget, security model, and alignment with Nerdy's Live+AI platform
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Full architecture deep-dive: design decisions, tech choices with alternatives considered, metrics engine design, data flow, performance budget, security model, and alignment with the Live+AI platform

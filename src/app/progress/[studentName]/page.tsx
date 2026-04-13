@@ -518,7 +518,7 @@ function ProgressContent({ studentName }: { studentName: string }) {
 
       {/* ===== Footer ===== */}
       <footer style={styles.footer}>
-        <p style={{ margin: 0 }}>Powered by Nerdy Session Analysis</p>
+        <p style={{ margin: 0 }}>Powered by Session Analysis</p>
         <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>
           All session data is stored locally on this device. No personal information is shared externally.
         </p>

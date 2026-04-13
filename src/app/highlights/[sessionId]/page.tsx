@@ -428,7 +428,7 @@ export default function HighlightsPage({
 
         {/* ── Footer ──────────────────────────────────────────── */}
         <footer style={styles.footer}>
-          <p style={styles.footerBrand}>Powered by Nerdy Session Analysis</p>
+          <p style={styles.footerBrand}>Powered by Session Analysis</p>
           <Link href={`/analytics/${sessionId}`} style={styles.footerLink}>
             View full analytics
           </Link>

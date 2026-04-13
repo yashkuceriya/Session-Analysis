@@ -1,4 +1,4 @@
-# Nerdy Session Analysis — Architecture & Design Decisions
+# Session Analysis — Architecture & Design Decisions
 
 ## 1. Problem Statement
 
@@ -6,7 +6,7 @@ Online tutoring is a black box. Parents pay $40-80/hr, a session happens on vide
 if it actually worked. Did the student zone out? Did the tutor lecture for 45 minutes without checking
 understanding? Was the student confused but too shy to say anything?
 
-**Nerdy Session Analysis** turns that black box into a glass box — providing real-time, AI-powered
+**Session Analysis** turns that black box into a glass box — providing real-time, AI-powered
 engagement analytics for live tutoring sessions without sending any video data to a server.
 
 ### Who benefits?
@@ -15,7 +15,7 @@ engagement analytics for live tutoring sessions without sending any video data t
 |-------------|---------|-----------------|
 | **Tutors** | No feedback loop between sessions | Real-time nudges + post-session analytics with actionable coaching |
 | **Parents** | "How do I know the money is working?" | Engagement trends across sessions, progress reports |
-| **Platform (Nerdy)** | Can't review 10,000+ daily sessions manually | Automated quality signals, tutor scoring, early-warning on bad sessions |
+| **Platform** | Can't review 10,000+ daily sessions manually | Automated quality signals, tutor scoring, early-warning on bad sessions |
 | **Students** | Can't self-assess focus/engagement | Post-session reflection data, state breakdown |
 
 ---
@@ -379,7 +379,7 @@ If the device can't keep up:
 | XSS | React's default escaping. No `dangerouslySetInnerHTML`. CSP headers via Next.js. |
 | CSRF | NextAuth's built-in CSRF token rotation. |
 | Credential storage | bcrypt with cost factor 10. Passwords never logged or returned in API responses. |
-| IndexedDB access | Same-origin policy. Data is only accessible from the Nerdy domain. |
+| IndexedDB access | Same-origin policy. Data is only accessible from the application domain. |
 
 ---
 
@@ -475,12 +475,12 @@ docs/                       # Architecture documentation
 
 ---
 
-## 12. Alignment with Nerdy's Live+AI Platform
+## 12. Alignment with the Live+AI Platform
 
-This project directly addresses capabilities Nerdy is building into their Live+AI platform
+This project directly addresses capabilities being built into their Live+AI platform
 (launched October 2025, expanded April 2025). Here's how our work maps to their product:
 
-| Nerdy Live+AI Feature | Our Implementation | Status |
+| Live+AI Feature | Our Implementation | Status |
 |---|---|---|
 | AI Session Insights & Video Playback | Claude analyzer + analytics page with full metrics timeline | Built |
 | Real-time engagement tracking | Metrics engine with weighted scoring, student state classification | Built |
@@ -492,12 +492,12 @@ This project directly addresses capabilities Nerdy is building into their Live+A
 
 ### Key differentiator: Privacy-first architecture
 
-Nerdy's platform processes data server-side. Our approach is fundamentally different:
+the platform processes data server-side. Our approach is fundamentally different:
 all video/audio analysis happens client-side using MediaPipe and Web Audio APIs. This
 eliminates COPPA/FERPA/GDPR concerns when tutoring minors, reduces server costs to near-zero
 per session, and provides sub-100ms feedback latency impossible with server round-trips.
 
-This positions the project as a **complementary module** that could be embedded in Nerdy's
+This positions the project as a **complementary module** that could be embedded in the
 existing Live Learning Platform to add real-time engagement analytics without infrastructure
 changes or privacy regulatory overhead.
 
@@ -511,7 +511,7 @@ These are features that would significantly increase platform value:
    session summaries, tutor ratings. This is the retention play — parents who see progress keep paying.
 
 2. **Tutor Leaderboard**: Aggregate tutor quality scores across all their sessions. Surface top
-   performers, flag underperformers for coaching. Critical for Nerdy's quality-at-scale problem.
+   performers, flag underperformers for coaching. Critical for the quality-at-scale problem.
 
 3. **Session Recording Highlights**: Auto-clip peak engagement and "aha" moments. 30-second clips
    that parents can watch instead of full session recordings.
